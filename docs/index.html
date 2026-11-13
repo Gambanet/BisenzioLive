@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Allerta Bisenzio</title>
+<meta name="description" content="Livelli del Bisenzio, pioggia e allerta stimata per Campi Bisenzio e la Val di Bisenzio.">
+<meta name="theme-color" content="#14313d">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f3f5f4; --panel: #ffffff; --fg: #15232a; --muted: #5b6b72; --line: #d8dfdf;
+    --acqua: #1f6f8b; --acqua2: #7a5c99; --grid: #e6ebeb;
+    --verde: #9aa9a6; --giallo: #d4a800; --arancio: #e0701f; --rosso: #d02f2a;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1a1f; --panel: #16252c; --fg: #e6eef0; --muted: #9db0b6; --line: #2a3d45;
+      --acqua: #5bb5d3; --acqua2: #b79ad6; --grid: #22343b; --verde: #5f706d; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 18px; }
+  header h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.01em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+  h2 { margin: 0 0 10px; font-size: 1.1rem; }
+  .muted { color: var(--muted); font-size: .85rem; }
+  .allerta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .allerta .badge { font-size: 1.5rem; font-weight: 700; padding: 6px 16px; border-radius: 999px; color: #fff; background: var(--verde); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .staz .nome { color: var(--muted); font-size: .85rem; }
+  .staz .val { font-size: 1.9rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .staz .trend { font-size: .85rem; color: var(--muted); }
+  .bar { position: relative; height: 10px; border-radius: 6px; background: var(--grid); margin: 8px 0 4px; overflow: hidden; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--acqua); border-radius: 6px; }
+  .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; }
+  .chart { width: 100%; min-height: 200px; position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { fill: var(--muted); font-size: 11px; font-family: var(--font); }
+  .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: .8rem; box-shadow: 0 4px 14px rgba(0,0,0,.15); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-top: 8px; }
+  input, select { font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); max-width: 170px; }
+  .sim { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; align-items: start; }
+  .big { font-size: 2rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .warn { color: var(--rosso); font-size: .85rem; }
+  .tablewrap { overflow-x: auto; max-height: 360px; overflow-y: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-weight: 600; }
+  footer { color: var(--muted); font-size: .8rem; }
+  a { color: var(--acqua); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Allerta Bisenzio</h1>
+    <p id="aggiornato">Caricamento dati…</p>
+  </header>
+
+  <section class="card" id="ora">
+    <h2>Adesso</h2>
+    <div class="allerta"><span class="badge" id="badge">—</span><span id="causa" class="muted"></span></div>
+    <p class="muted">Stima su valori istantanei: pioggia ultime 24 e 36 ore, livelli attuali. Non sostituisce le allerte ufficiali.</p>
+    <div class="grid" id="stazioni"></div>
+  </section>
+
+  <section class="card">
+    <h2>Ultime ore</h2>
+    <div class="legend"><span><i class="dot" style="background:var(--acqua)"></i>S. Piero a Ponti</span><span><i class="dot" style="background:var(--acqua2)"></i>Gamberame</span></div>
+    <div class="chart" id="chart-ore" style="min-height:0"></div>
+    <p class="muted" id="ore-nota"></p>
+  </section>
+
+  <section class="card">
+    <h2>Simulatore per domani</h2>
+    <div class="sim">
+      <div>
+        <label for="s-p">Pioggia prevista a Gamberame (mm)</label><input id="s-p" type="number" min="0" max="400" step="1" value="70">
+        <label for="s-l">Livello attuale a S. Piero a Ponti (m)</label><input id="s-l" type="number" min="0" max="8" step="0.05" value="2">
+        <label for="s-i">Pioggia ultime 24 ore a Gamberame (mm)</label><input id="s-i" type="number" min="0" max="400" step="1" value="0">
+        <p class="muted">Previsioni: <a href="https://www.cfr.toscana.it/index.php?IDS=2&IDSS=71" target="_blank" rel="noopener">bollettino di vigilanza CFR</a>, zona B.</p>
+      </div>
+      <div>
+        <div class="muted">Livello medio stimato a S. Piero a Ponti</div>
+        <div class="big" id="s-stima">—</div>
+        <div class="muted" id="s-range"></div>
+        <div class="muted" style="margin-top:10px">Allerta stimata</div>
+        <div class="big" id="s-allerta">—</div>
+        <div class="muted" id="s-causa"></div>
+        <p class="warn" id="s-avviso" hidden>Pioggia oltre quasi tutti i casi registrati: la stima del livello è probabilmente troppo bassa.</p>
+      </div>
+    </div>
+    <p class="muted">Giorni simili dal 1998</p>
+    <div class="tablewrap"><table><thead><tr><th>Data</th><th></th><th>Pioggia Gamberame (mm)</th><th>Pioggia giorno prima</th><th>S. Piero prima (m)</th><th>S. Piero quel giorno (m)</th></tr></thead><tbody id="s-tab"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Indice di allerta giornaliero</h2>
+    <label for="anno">Periodo</label>
+    <select id="anno"><option value="">Tutto (dal 1998)</option><option value="ultimi5">Ultimi 5 anni</option></select>
+    <div class="legend" style="margin-top:8px"><span><i class="dot" style="background:var(--rosso)"></i>Rosso ≥100</span><span><i class="dot" style="background:var(--arancio)"></i>Arancione 75–99</span><span><i class="dot" style="background:var(--giallo)"></i>Giallo 55–74</span></div>
+    <div class="chart" id="chart-indice"></div>
+  </section>
+
+  <section class="card">
+    <h2>Giorni di allerta arancione e rossa</h2>
+    <div class="tablewrap"><table><thead><tr><th>Data</th><th>Livello</th><th>Indice</th><th>Pioggia 24h</th><th>S. Piero (m)</th><th>Gamberame (m)</th></tr></thead><tbody id="tab-allerte"></tbody></table></div>
+  </section>
+
+  <footer>
+    Dati: Servizio Idrologico Regionale Toscana (sir.toscana.it). I dati in tempo reale non sono validati.
+    L'indice è una stima indicativa: rosso = pioggia 24h ≥ 100 mm, o 48h ≥ 140 mm, o livello medio S. Piero a Ponti ≥ 3,50 m, o Gamberame ≥ 1,50 m.
+    Per le decisioni valgono gli avvisi del <a href="https://www.cfr.toscana.it" target="_blank" rel="noopener">Centro Funzionale Regionale</a> e della Protezione Civile.
+  </footer>
+</div>
+
+<script>
+const COL = { 'Rosso': 'var(--rosso)', 'Arancione': 'var(--arancio)', 'Giallo': 'var(--giallo)', 'Nessuna allerta': 'var(--verde)' };
+const n = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? 'n.d.' : v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d });
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, text) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
+const fData = (iso) => { const [a, m, g] = iso.slice(0, 10).split('-'); return `${g}/${m}/${a}`; };
+const livello = (i) => i >= 100 ? 'Rosso' : i >= 75 ? 'Arancione' : i >= 55 ? 'Giallo' : 'Nessuna allerta';
+let DATI = null, STORICO = null, STORICO_AGG = null;
+
+async function carica() {
+  try {
+    const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' });
+    DATI = await r.json();
+    if (!STORICO || STORICO_AGG !== DATI.storico_aggiornato) {
+      const s = await (await fetch('storico.json?v=' + encodeURIComponent(DATI.storico_aggiornato || ''))).json();
+      STORICO = s.righe.map((r) => Object.fromEntries(s.campi.map((k, i) => [k, r[i]])));
+      STORICO_AGG = DATI.storico_aggiornato;
+    }
+    DATI.storico = STORICO;
+  } catch (e) { $('aggiornato').textContent = 'Dati non disponibili: riprova più tardi.'; return; }
+  const agg = new Date(DATI.aggiornato);
+  $('aggiornato').textContent = 'Aggiornato ' + agg.toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' }) + ' · fonte SIR Toscana';
+  disegnaOra(); disegnaOre(); preparaAnni(); disegnaIndice(); disegnaTabella(); preparaSim();
+}
+
+function disegnaOra() {
+  const s = DATI.stima;
+  $('badge').textContent = s.livello; $('badge').style.background = COL[s.livello];
+  $('causa').textContent = `indice ${s.indice} · ${s.causa.toLowerCase()}`;
+  const box = $('stazioni'); box.replaceChildren();
+  const tr = DATI.tempo_reale;
+  for (const k of ['san_piero', 'gamberame']) {
+    const l = tr.livelli[k]; if (!l) continue;
+    const d = document.createElement('div'); d.className = 'staz';
+    const max = Math.max(l.soglia2 * 1.1, l.livello || 0);
+    const v = (l.variazioni || []).find((x) => x !== null && x !== undefined);
+    const tend = v === undefined ? '' : v > 0.02 ? '↑ in salita' : v < -0.02 ? '↓ in calo' : '→ stabile';
+    d.innerHTML = `<div class="nome"></div><div class="val"></div><div class="bar"><i></i><b style="background:var(--arancio)"></b><b style="background:var(--rosso)"></b></div><div class="trend"></div>`;
+    d.querySelector('.nome').textContent = `Livello ${l.nome}`;
+    d.querySelector('.val').textContent = n(l.livello) + ' m';
+    d.querySelector('.bar i').style.width = Math.max(0, Math.min(100, 100 * (l.livello || 0) / max)) + '%';
+    const [b1, b2] = d.querySelectorAll('.bar b');
+    b1.style.left = (100 * l.soglia1 / max) + '%'; b2.style.left = (100 * l.soglia2 / max) + '%';
+    d.querySelector('.trend').textContent = `${tend} · soglie ${n(l.soglia1)} / ${n(l.soglia2)} m`;
+    box.appendChild(d);
+  }
+  for (const k of ['gamberame', 'campi']) {
+    const p = tr.piogge[k]; if (!p) continue;
+    const d = document.createElement('div'); d.className = 'staz';
+    d.innerHTML = '<div class="nome"></div><div class="val"></div><div class="trend"></div>';
+    d.querySelector('.nome').textContent = `Pioggia ${p.nome}, ultime 24 ore`;
+    d.querySelector('.val').textContent = n(p.mm_24h, 1) + ' mm';
+    d.querySelector('.trend').textContent = `ultima ora ${n(p.mm_1h, 1)} · 3 ore ${n(p.mm_3h, 1)} · 36 ore ${n(p.mm_36h, 1)} mm`;
+    box.appendChild(d);
+  }
+}
+
+function assi(svg, W, H, m, xs, ys, yTicks, xTicks) {
+  for (const t of yTicks) {
+    svg.appendChild(el('line', { x1: m.l, x2: W - m.r, y1: ys(t), y2: ys(t), stroke: 'var(--grid)' }));
+    svg.appendChild(el('text', { x: m.l - 6, y: ys(t) + 4, 'text-anchor': 'end' }, String(t).replace('.', ',')));
+  }
+  for (const [x, lab] of xTicks) svg.appendChild(el('text', { x, y: H - 6, 'text-anchor': 'middle' }, lab));
+}
+
+function tooltip(box, svg, W, m, righe, xOf, testo) {
+  const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; box.appendChild(tip);
+  svg.addEventListener('pointermove', (ev) => {
+    const r = svg.getBoundingClientRect(); const x = (ev.clientX - r.left) * W / r.width;
+    if (x < m.l || x > W - m.r) { tip.hidden = true; return; }
+    let best = 0, bd = Infinity; righe.forEach((d, i) => { const dd = Math.abs(xOf(d, i) - x); if (dd < bd) { bd = dd; best = i; } });
+    tip.textContent = testo(righe[best]); tip.style.whiteSpace = 'pre'; tip.hidden = false;
+    const px = ev.clientX - box.getBoundingClientRect().left;
+    tip.style.left = Math.min(box.clientWidth - tip.offsetWidth, Math.max(0, px + 10)) + 'px'; tip.style.top = '0px';
+  });
+  svg.addEventListener('pointerleave', () => { tip.hidden = true; });
+}
+
+function disegnaOre() {
+  const box = $('chart-ore'); box.replaceChildren();
+  const righe = (DATI.registro || []).filter((r) => r.san_piero !== null || r.gamberame !== null);
+  if (righe.length < 2) { $('ore-nota').textContent = 'Il grafico si riempie man mano che arrivano le letture orarie.'; return; }
+  $('ore-nota').textContent = '';
+  const W = Math.max(320, box.clientWidth), H = 220, m = { l: 36, r: 10, t: 10, b: 24 };
+  const t0 = new Date(righe[0].ora), t1 = new Date(righe[righe.length - 1].ora);
+  const xs = (d) => m.l + (W - m.l - m.r) * (new Date(d.ora) - t0) / Math.max(1, t1 - t0);
+  const ymax = Math.max(4, ...righe.map((r) => Math.max(r.san_piero || 0, r.gamberame || 0)));
+  const ys = (v) => m.t + (H - m.t - m.b) * (1 - v / ymax);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Livelli del Bisenzio nelle ultime ore' });
+  const xt = [0, .5, 1].map((f) => { const t = new Date(+t0 + f * (t1 - t0)); return [m.l + f * (W - m.l - m.r), t.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })]; });
+  assi(svg, W, H, m, xs, ys, [0, 1, 2, 3, 4].filter((t) => t <= ymax), xt);
+  svg.appendChild(el('line', { x1: m.l, x2: W - m.r, y1: ys(3.5), y2: ys(3.5), stroke: 'var(--arancio)', 'stroke-dasharray': '4 3' }));
+  for (const [k, c] of [['san_piero', 'var(--acqua)'], ['gamberame', 'var(--acqua2)']]) {
+    const pts = righe.filter((r) => r[k] !== null).map((r) => `${xs(r).toFixed(1)},${ys(r[k]).toFixed(1)}`).join(' ');
+    svg.appendChild(el('polyline', { points: pts, fill: 'none', stroke: c, 'stroke-width': 2 }));
+  }
+  box.appendChild(svg);
+  tooltip(box, svg, W, m, righe, (d) => xs(d), (d) => `${new Date(d.ora).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}\nS. Piero ${n(d.san_piero)} m\nGamberame ${n(d.gamberame)} m\nPioggia Gamberame 1h ${n(d.pioggia_gamberame_1h, 1)} mm`);
+}
+
+function preparaAnni() {
+  const sel = $('anno'); if (sel.options.length > 1) return;
+  [...new Set(DATI.storico.map((r) => r.data.slice(0, 4)))].reverse().forEach((a) => sel.appendChild(new Option(a, a)));
+  sel.addEventListener('change', () => { disegnaIndice(); disegnaTabella(); });
+}
+
+function disegnaIndice() {
+  const box = $('chart-indice'); box.replaceChildren();
+  const a = $('anno').value;
+  const filtro = (r) => !a || (a === 'ultimi5' ? r.data >= String(new Date().getFullYear() - 4) : r.data.startsWith(a));
+  const righe = DATI.storico.filter(filtro);
+  if (!righe.length) return;
+  const W = Math.max(320, box.clientWidth), H = 240, m = { l: 34, r: 8, t: 10, b: 24 };
+  const bw = (W - m.l - m.r) / righe.length;
+  const ymax = Math.max(120, ...righe.map((r) => r.indice));
+  const ys = (v) => m.t + (H - m.t - m.b) * (1 - v / ymax);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Indice di allerta giornaliero' });
+  const anni = []; righe.forEach((r, i) => { if (i === 0 || r.data.slice(0, 7) !== righe[i - 1].data.slice(0, 7)) { const mm = r.data.slice(5, 7); const passo = W < 500 ? 7 : W < 800 ? 4 : 2; const mensile = a && a !== 'ultimi5'; if (mensile ? true : (mm === '01' && (a === 'ultimi5' || +r.data.slice(0, 4) % passo === 0))) anni.push([m.l + i * bw, mensile ? ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][+mm - 1] : r.data.slice(0, 4)]); } });
+  assi(svg, W, H, m, null, ys, [0, 50, 100, 150].filter((t) => t <= ymax), anni);
+  righe.forEach((r, i) => svg.appendChild(el('rect', { x: m.l + i * bw, width: Math.max(1, bw - (bw > 3 ? 1 : 0)), y: ys(r.indice), height: ys(0) - ys(r.indice), fill: COL[r.livello] })));
+  for (const v of [55, 75, 100]) svg.appendChild(el('line', { x1: m.l, x2: W - m.r, y1: ys(v), y2: ys(v), stroke: 'var(--muted)', 'stroke-dasharray': '3 3', opacity: .6 }));
+  box.appendChild(svg);
+  tooltip(box, svg, W, m, righe, (d, i) => m.l + (i + .5) * bw, (d) => `${fData(d.data)} · indice ${d.indice} (${d.livello})\nPioggia Gamberame ${n(d.pioggia_gamberame_mm, 1)} mm, Campi ${n(d.pioggia_campi_mm, 1)} mm\nS. Piero ${n(d.livello_san_piero_m)} m · Gamberame ${n(d.livello_gamberame_m)} m`);
+}
+
+function riga(cells, dot) {
+  const tr = document.createElement('tr');
+  cells.forEach((c, i) => { const td = document.createElement('td'); if (i === 1 && dot) { const s = document.createElement('span'); s.className = 'dot'; s.style.background = dot; td.appendChild(s); } td.append(c); tr.appendChild(td); });
+  return tr;
+}
+
+function disegnaTabella() {
+  const a = $('anno').value;
+  const righe = DATI.storico.filter((r) => (r.livello === 'Rosso' || r.livello === 'Arancione') && (!a || (a === 'ultimi5' ? r.data >= String(new Date().getFullYear() - 4) : r.data.startsWith(a)))).reverse();
+  $('tab-allerte').replaceChildren(...righe.map((r) => riga([fData(r.data), r.livello, String(r.indice), n(Math.max(r.pioggia_gamberame_mm || 0, r.pioggia_campi_mm || 0), 1), n(r.livello_san_piero_m), n(r.livello_gamberame_m)], COL[r.livello])));
+}
+
+function preparaSim() {
+  const sp = DATI.tempo_reale.livelli.san_piero, pg = DATI.tempo_reale.piogge.gamberame;
+  if (sp && sp.livello !== null) $('s-l').value = sp.livello.toFixed(2);
+  if (pg && pg.mm_24h !== null) $('s-i').value = Math.round(pg.mm_24h);
+  ['s-p', 's-l', 's-i'].forEach((id) => $(id).addEventListener('input', simula));
+  simula();
+}
+
+function simula() {
+  const v = (id) => { const x = parseFloat(String($(id).value).replace(',', '.')); return Number.isFinite(x) ? Math.max(0, x) : 0; };
+  const G = v('s-p'), L = v('s-l'), P = v('s-i');
+  const S = DATI.storico; const pool = [];
+  for (let i = 1; i < S.length; i++) {
+    const r = S[i], q = S[i - 1];
+    if (r.pioggia_gamberame_mm === null || q.livello_san_piero_m === null || r.livello_san_piero_m === null) continue;
+    pool.push({ data: r.data, g: r.pioggia_gamberame_mm, p: q.pioggia_gamberame_mm || 0, l0: q.livello_san_piero_m, l1: r.livello_san_piero_m });
+  }
+  const dist = (r) => ((r.g - G) / 15) ** 2 + ((r.l0 - L) / 0.25) ** 2 + ((r.p - P) / 30) ** 2;
+  const vic = pool.sort((a, b) => dist(a) - dist(b)).slice(0, 6);
+  const lv = vic.map((r) => r.l1).sort((a, b) => a - b);
+  const med = (lv[2] + lv[3]) / 2;
+  const SO = DATI.soglie_indice;
+  const misure = [['pioggia 24h', G / SO.pioggia24h], ['pioggia 48h', (G + P) / SO.pioggia48h], ['livello S. Piero', med / SO.san_piero]];
+  const [causa, q] = misure.reduce((a, b) => b[1] > a[1] ? b : a);
+  const idx = Math.round(100 * q), liv = livello(idx);
+  $('s-stima').textContent = n(med) + ' m';
+  $('s-range').textContent = `nei giorni simili tra ${n(lv[0])} e ${n(lv[lv.length - 1])} m`;
+  $('s-allerta').textContent = liv; $('s-allerta').style.color = COL[liv];
+  $('s-causa').textContent = `indice ${idx} · causa principale: ${causa}`;
+  $('s-avviso').hidden = !(G > 110 || G > 1.25 * Math.max(...vic.map((r) => r.g)) + 5);
+  $('s-tab').replaceChildren(...vic.map((r) => riga([fData(r.data), '', n(r.g, 1), n(r.p, 1), n(r.l0), n(r.l1)])));
+}
+
+let rid; window.addEventListener('resize', () => { clearTimeout(rid); rid = setTimeout(() => { if (DATI) { disegnaOre(); disegnaIndice(); } }, 200); });
+carica();
+setInterval(carica, 15 * 60 * 1000);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
