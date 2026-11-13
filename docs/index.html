@@ -52,6 +52,10 @@
   th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
   th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-weight: 600; }
+  .prevbox { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; font-size: .9rem; display: flex; flex-direction: column; gap: 4px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .btns button { font: inherit; font-size: .8rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); cursor: pointer; }
+  .btns button[aria-pressed="true"] { border-color: var(--acqua); color: var(--acqua); font-weight: 600; }
   footer { color: var(--muted); font-size: .8rem; }
   a { color: var(--acqua); }
 </style>
@@ -81,10 +85,17 @@
     <h2>Simulatore per domani</h2>
     <div class="sim">
       <div>
+        <div id="prev-box" class="prevbox" hidden>
+          <div class="muted" id="prev-titolo">Previsione per domani</div>
+          <div id="prev-cfr"></div>
+          <div id="prev-mod"></div>
+          <div class="btns" id="prev-btns"></div>
+        </div>
         <label for="s-p">Pioggia prevista a Gamberame (mm)</label><input id="s-p" type="number" min="0" max="400" step="1" value="70">
+        <div class="muted" id="s-p-fonte"></div>
         <label for="s-l">Livello attuale a S. Piero a Ponti (m)</label><input id="s-l" type="number" min="0" max="8" step="0.05" value="2">
         <label for="s-i">Pioggia ultime 24 ore a Gamberame (mm)</label><input id="s-i" type="number" min="0" max="400" step="1" value="0">
-        <p class="muted">Previsioni: <a href="https://www.cfr.toscana.it/index.php?IDS=2&IDSS=71" target="_blank" rel="noopener">bollettino di vigilanza CFR</a>, zona B.</p>
+        <p class="muted">Compilati in automatico ogni ora: puoi cambiarli a mano. Fonti: <a href="https://www.cfr.toscana.it/index.php?IDS=2&IDSS=71" target="_blank" rel="noopener">bollettino di vigilanza CFR</a> (zona B) e modello meteo Open-Meteo.</p>
       </div>
       <div>
         <div class="muted">Livello medio stimato a S. Piero a Ponti</div>
@@ -115,7 +126,7 @@
 
   <footer>
     Dati: Servizio Idrologico Regionale Toscana (sir.toscana.it). I dati in tempo reale non sono validati.
-    L'indice è una stima indicativa: rosso = pioggia 24h ≥ 100 mm, o 48h ≥ 140 mm, o livello medio S. Piero a Ponti ≥ 3,50 m, o Gamberame ≥ 1,50 m.
+    L'indice è una stima indicativa. Livello del Bisenzio: giallo dalla prima soglia ufficiale (S. Piero a Ponti 3,50 m, Gamberame 1,80 m), arancione a metà (4,50 m / 2,30 m), rosso dalla seconda soglia (5,50 m / 2,80 m). Pioggia: rosso con 24h ≥ 100 mm o 48h ≥ 140 mm. Nello storico si usano i livelli medi del giorno, più bassi dei picchi.
     Per le decisioni valgono gli avvisi del <a href="https://www.cfr.toscana.it" target="_blank" rel="noopener">Centro Funzionale Regionale</a> e della Protezione Civile.
   </footer>
 </div>
@@ -257,12 +268,61 @@ function disegnaTabella() {
   $('tab-allerte').replaceChildren(...righe.map((r) => riga([fData(r.data), r.livello, String(r.indice), n(Math.max(r.pioggia_gamberame_mm || 0, r.pioggia_campi_mm || 0), 1), n(r.livello_san_piero_m), n(r.livello_gamberame_m)], COL[r.livello])));
 }
 
+let SIM_PRONTO = false, SIM_TOCCATO = false;
 function preparaSim() {
+  if (!SIM_PRONTO) {
+    ['s-p', 's-l', 's-i'].forEach((id) => $(id).addEventListener('input', () => { SIM_TOCCATO = true; $('s-p-fonte').textContent = 'Valore inserito a mano'; segnaBottoni(null); simula(); }));
+    SIM_PRONTO = true;
+  }
+  if (SIM_TOCCATO) { simula(); return; }  // non sovrascrivere quello che hai scritto
   const sp = DATI.tempo_reale.livelli.san_piero, pg = DATI.tempo_reale.piogge.gamberame;
   if (sp && sp.livello !== null) $('s-l').value = sp.livello.toFixed(2);
   if (pg && pg.mm_24h !== null) $('s-i').value = Math.round(pg.mm_24h);
-  ['s-p', 's-l', 's-i'].forEach((id) => $(id).addEventListener('input', simula));
+  mostraPrevisione();
   simula();
+}
+
+function segnaBottoni(val) {
+  document.querySelectorAll('#prev-btns button').forEach((b) => b.setAttribute('aria-pressed', String(val !== null && +b.dataset.mm === val)));
+}
+
+function mostraPrevisione() {
+  const p = DATI.previsione; const box = $('prev-box');
+  if (!p || (!p.cfr && !p.modello)) { box.hidden = true; return; }
+  box.hidden = false;
+  const [a, m, g] = p.data.split('-');
+  const giorno = new Date(Date.UTC(+a, +m - 1, +g)).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: 'UTC' });
+  $('prev-titolo').textContent = 'Pioggia prevista per ' + giorno;
+  const intervallo = (x) => x ? (x[0] === x[1] ? n(x[0], 0) : n(x[0], 0) + '–' + n(x[1], 0)) + ' mm' : 'n.d.';
+  $('prev-cfr').textContent = p.cfr
+    ? `Bollettino CFR, zona B: medi ${intervallo(p.cfr.medi_mm)}, massimi ${intervallo(p.cfr.massimi_mm)}`
+    : 'Bollettino CFR: nessun valore per la zona B trovato per questo giorno';
+  $('prev-mod').textContent = p.modello
+    ? `Modello meteo, alta valle: media ${n(p.modello.media_mm, 0)} mm, massimo ${n(p.modello.max_mm, 0)} mm`
+    : 'Modello meteo: non disponibile';
+  const scelte = [];
+  if (p.cfr && p.cfr.medi_mm) scelte.push(['CFR medio', p.cfr.medi_mm[1]]);
+  if (p.cfr && p.cfr.massimi_mm) scelte.push(['CFR massimo', p.cfr.massimi_mm[1]]);
+  if (p.modello) scelte.push(['Modello', p.modello.media_mm], ['Modello max', p.modello.max_mm]);
+  $('prev-btns').replaceChildren(...scelte.map(([lab, mm]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.mm = mm;
+    b.textContent = `${lab} ${n(mm, 0)} mm`;
+    b.addEventListener('click', () => { $('s-p').value = Math.round(mm); $('s-p-fonte').textContent = 'Valore: ' + lab; segnaBottoni(mm); simula(); });
+    return b;
+  }));
+  if (p.pioggia_usata_mm !== null && p.pioggia_usata_mm !== undefined) {
+    $('s-p').value = Math.round(p.pioggia_usata_mm);
+    $('s-p-fonte').textContent = 'Valore automatico: ' + p.pioggia_usata_fonte;
+    segnaBottoni(p.pioggia_usata_mm);
+  }
+}
+
+// Livello -> quota dell'indice: giallo 0,55, arancione 0,75, rosso 1 (stessa regola dello script)
+function quotaLivello(v, [gi, ar, ro]) {
+  if (v <= gi) return 0.55 * v / gi;
+  if (v <= ar) return 0.55 + 0.20 * (v - gi) / (ar - gi);
+  if (v <= ro) return 0.75 + 0.25 * (v - ar) / (ro - ar);
+  return 1 + 0.25 * (v - ro) / (ro - ar);
 }
 
 function simula() {
@@ -279,7 +339,7 @@ function simula() {
   const lv = vic.map((r) => r.l1).sort((a, b) => a - b);
   const med = (lv[2] + lv[3]) / 2;
   const SO = DATI.soglie_indice;
-  const misure = [['pioggia 24h', G / SO.pioggia24h], ['pioggia 48h', (G + P) / SO.pioggia48h], ['livello S. Piero', med / SO.san_piero]];
+  const misure = [['pioggia 24h', G / SO.pioggia24h], ['pioggia 48h', (G + P) / SO.pioggia48h], ['livello S. Piero', quotaLivello(med, (SO.livelli || {}).san_piero || [3.5, 4.5, 5.5])]];
   const [causa, q] = misure.reduce((a, b) => b[1] > a[1] ? b : a);
   const idx = Math.round(100 * q), liv = livello(idx);
   $('s-stima').textContent = n(med) + ' m';
