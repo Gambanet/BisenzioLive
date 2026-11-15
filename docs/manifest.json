@@ -1,16 +1,19 @@
 {
-  "name": "Allerta Bisenzio",
-  "short_name": "Bisenzio",
-  "description": "Livelli del Bisenzio, pioggia e allerta stimata per Campi Bisenzio e la Val di Bisenzio.",
+  "name": "Bisenzio Live",
+  "short_name": "Bisenzio Live",
+  "description": "Livelli del Bisenzio, pioggia in Val di Bisenzio e a Campi Bisenzio, allerta stimata e previsione per domani. Non è un servizio ufficiale di allerta.",
   "lang": "it",
-  "start_url": "./",
+  "id": "./",
+  "start_url": "./#adesso",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#14313d",
-  "theme_color": "#14313d",
+  "orientation": "portrait",
+  "background_color": "#0f3b4c",
+  "theme_color": "#0f3b4c",
+  "categories": ["weather", "utilities"],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
