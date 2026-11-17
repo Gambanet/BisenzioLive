@@ -280,7 +280,7 @@
     </div>
     <div class="card info">
       <h2>Come si calcola l'allerta</h2>
-      <p>La base è il livello del Bisenzio a San Piero a Ponti, ma conta anche se nell'ultima ora sale o scende. La pioggia conta solo quando è molto abbondante. Vince la condizione più grave; per scendere di colore servono almeno 60 minuti di situazione migliore.</p>
+      <p>La base è il livello del Bisenzio a San Piero a Ponti, ma conta anche se nell'ultima ora sale o scende. La pioggia conta solo quando è molto abbondante. Vince la condizione più grave; per scendere di colore servono almeno 30 minuti (due letture) di situazione migliore.</p>
       <div class="tabella"><table class="regole"><thead><tr><th>Colore</th><th>Quando</th></tr></thead><tbody>
         <tr><td><b style="color:var(--rosso)">Rossa</b></td><td>San Piero oltre 5,50 m (seconda soglia ufficiale) · almeno 100 mm in 24 ore a Gamberame con il terreno molto bagnato · allerta ufficiale rossa della Regione</td></tr>
         <tr><td><b style="color:var(--arancio)">Arancione</b></td><td>San Piero oltre 4,50 m e in salita, o oltre 5,00 m · almeno 80 mm in 24 ore o 120 mm in 36 ore · Gamberame oltre 2,80 m</td></tr>
@@ -480,8 +480,10 @@ function disegnaStato() {
     const [gi, ar, ro] = soglie().livelli.san_piero;
     parti.push(sp.livello < gi ? `Mancano ${n(gi - sp.livello)} m alla prima soglia ufficiale (${n(gi)} m).` : sp.livello < ro ? `Mancano ${n(ro - sp.livello)} m alla seconda soglia ufficiale (${n(ro)} m).` : 'Oltre la seconda soglia ufficiale.');
   } else parti.push('Il livello a San Piero a Ponti non è disponibile: segui gli avvisi ufficiali.');
-  if ((s.motivi || []).length) parti.push('Perché: ' + s.motivi.join('; ') + '.');
-  if (s.in_attesa_di) parti.push(`Se la situazione resta così, entro un'ora passa a: ${NOME[s.in_attesa_di].toLowerCase()}.`);
+  if (s.in_attesa_di) {
+    if ((s.motivi || []).length) parti.push('Adesso: ' + s.motivi.join('; ') + '.');
+    parti.push(`Per prudenza resta ${NOME[s.livello].toLowerCase()}` + (s.scende_alle ? ` fino alle ${ora(s.scende_alle)}` : ' ancora per poco') + `, poi passa a ${NOME[s.in_attesa_di].toLowerCase()} se la situazione non peggiora.`);
+  } else if ((s.motivi || []).length) parti.push('Perché: ' + s.motivi.join('; ') + '.');
   $('stato-frase').textContent = parti.join(' ');
   const seg = s.segnali || [];
   $('segnali').hidden = !seg.length;
