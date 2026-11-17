@@ -17,7 +17,7 @@
   :root {
     --bg: #edf2f4; --panel: #ffffff; --panel2: #f5f8f9; --fg: #10232b; --muted: #5a6f78; --line: #dde5e8;
     --fiume: #0f3b4c; --fiume2: #1c6a86; --acqua: #2a8db3; --acqua2: #8a63b8; --grid: #e7eef1;
-    --verde: #2f9e6e; --giallo: #e2b000; --arancio: #ec7a1c; --rosso: #d7362e; --neutro: #9fb0b6;
+    --verde: #2f9e6e; --giallo: #e2b000; --arancio: #ec7a1c; --rosso: #d7362e; --neutro: #9fb0b6; --sorv: #6c7f87;
     --head-fg: #ffffff; --head-muted: rgba(255,255,255,.75);
     --shadow: 0 1px 2px rgba(16,35,43,.06), 0 6px 20px rgba(16,35,43,.06);
     --r: 18px;
@@ -25,7 +25,7 @@
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0b1a20; --panel: #12252d; --panel2: #0f2027; --fg: #e5eef1; --muted: #93a8b0; --line: #20363f;
-      --fiume: #0d2b37; --fiume2: #164c60; --acqua: #5bb8db; --acqua2: #b493dc; --grid: #1c313a; --neutro: #5d7179;
+      --fiume: #0d2b37; --fiume2: #164c60; --acqua: #5bb8db; --acqua2: #b493dc; --grid: #1c313a; --neutro: #5d7179; --sorv: #93a6ad;
       --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark; }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -111,7 +111,7 @@
   .pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
   .pill i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
   select { font: 600 .9rem var(--f-testo); padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--panel2); color: var(--fg); }
-  .conteggi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .conteggi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
   .conteggi .staz { text-align: center; }
   .conteggi .val { font-size: 1.7rem; }
 
@@ -121,6 +121,8 @@
   .badge-uff { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; }
   .cause { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .84rem; }
   .cause:empty { display: none; }
+  table.regole td { white-space: normal; vertical-align: top; line-height: 1.4; }
+  table.regole td:first-child { white-space: nowrap; }
   .segnali { background: var(--panel2); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: .85rem; }
   .segnali b { display: block; margin-bottom: 4px; }
   .segnali ul { margin: 0; padding-left: 18px; color: var(--muted); }
@@ -181,7 +183,7 @@
           <p id="stato-frase"></p>
         </div>
       </div>
-      <div class="segnali" id="segnali" hidden><b>Da tenere d'occhio</b><ul id="altre-cause"></ul><span class="muted">Sono informazioni: non cambiano il colore dell'allerta.</span></div>
+      <div class="segnali" id="segnali" hidden><b>Da tenere d'occhio</b><ul id="altre-cause"></ul><span class="muted">Da soli portano al massimo alla Sorveglianza.</span></div>
       <div class="avviso" id="dati-vecchi" hidden></div>
     </div>
 
@@ -257,8 +259,9 @@
       <label class="muted" for="anno">Periodo</label><br>
       <select id="anno"><option value="">Dal 1998 a oggi</option><option value="ultimi5">Ultimi 5 anni</option></select>
       <div class="conteggi" id="conteggi" style="margin-top:14px"></div>
-      <div class="legenda"><span><i style="background:var(--rosso)"></i>Rosso</span><span><i style="background:var(--arancio)"></i>Arancione</span><span><i style="background:var(--giallo)"></i>Giallo</span><span><i style="background:var(--neutro)"></i>Nessuna allerta</span></div>
+      <div class="legenda"><span><i style="background:var(--rosso)"></i>Rosso</span><span><i style="background:var(--arancio)"></i>Arancione</span><span><i style="background:var(--giallo)"></i>Giallo</span><span><i style="background:var(--sorv)"></i>Sorveglianza</span><span><i style="background:var(--neutro)"></i>Nessuna allerta</span></div>
       <div class="chart" id="chart-indice"></div>
+      <p class="muted">Altezza delle barre: livello medio del giorno a San Piero a Ponti. Colore: scala dell'app sui dati giornalieri (livello e pioggia a Gamberame).</p>
     </div>
     <div class="card">
       <h2>Giorni arancioni e rossi</h2>
@@ -276,10 +279,16 @@
     </div>
     <div class="card info">
       <h2>Come si calcola l'allerta</h2>
-      <p>Il colore dipende <b>solo dal livello del Bisenzio a San Piero a Ponti</b>. Le soglie gialla e rossa sono quelle ufficiali del Servizio Idrologico, l'arancione è a metà.</p>
-      <div class="tabella"><table class="soglie"><thead><tr><th>Livello a San Piero a Ponti</th><th></th><th>Giallo</th><th>Arancione</th><th>Rosso</th></tr></thead><tbody id="tab-soglie"></tbody></table></div>
-      <h3>Da tenere d'occhio</h3>
-      <p>Questi segnali compaiono in un riquadro grigio e non cambiano mai il colore:</p>
+      <p>La base è il livello del Bisenzio a San Piero a Ponti, ma conta anche se sale o scende. La pioggia conta solo quando è molto abbondante. Vince la condizione più grave; per scendere di colore servono almeno 60 minuti di situazione migliore.</p>
+      <div class="tabella"><table class="regole"><thead><tr><th>Colore</th><th>Quando</th></tr></thead><tbody>
+        <tr><td><b style="color:var(--rosso)">Rossa</b></td><td>San Piero oltre 5,50 m (seconda soglia ufficiale) · almeno 100 mm in 24 ore a Gamberame con il terreno molto bagnato · allerta ufficiale rossa della Regione</td></tr>
+        <tr><td><b style="color:var(--arancio)">Arancione</b></td><td>San Piero oltre 4,50 m e in salita, o oltre 5,00 m · almeno 80 mm in 24 ore o 120 mm in 36 ore · Gamberame oltre 2,80 m</td></tr>
+        <tr><td><b style="color:var(--giallo)">Gialla</b></td><td>San Piero oltre 3,50 m e in salita, o con pioggia in arrivo · oltre 3,00 m con l'onda in arrivo da Gamberame · almeno 60 mm in 24 ore · oltre 4,50 m ma in calo</td></tr>
+        <tr><td><b style="color:var(--sorv)">Sorveglianza</b></td><td>San Piero oltre 3,50 m stabile o in calo, senza pioggia in arrivo · oltre 3,00 m in salita · allerta ufficiale gialla o arancione · uno dei segnali qui sotto · pioggia abbondante ma fiume già in calo</td></tr>
+        <tr><td><b style="color:var(--verde)">Nessuna allerta</b></td><td>Nessuna delle condizioni sopra</td></tr>
+      </tbody></table></div>
+      <h3>Segnali da tenere d'occhio</h3>
+      <p>Portano al massimo alla Sorveglianza:</p>
       <ul id="lista-segnali"></ul>
       <p class="muted">Per la pioggia l'app conta in quanti giorni dal 1998 ne è caduta almeno altrettanta in un giorno a Gamberame o a Campi. Lo storico è giornaliero, quindi il confronto vale per le 24 ore e non per le piogge brevi. Le soglie di salita sono valori iniziali, da verificare sulle prossime piene.</p>
     </div>
@@ -290,7 +299,7 @@
     </div>
     <div class="card info">
       <h2>Verifica sulle piene dal 1998</h2>
-      <p>Dal 1998 il livello medio giornaliero a San Piero a Ponti ha raggiunto 3,50 m in 25 giorni (20 gialli e 5 arancioni; nessun giorno rosso come media del giorno, il massimo è 5,15 m). Usare anche la pioggia per far scattare l'allerta avrebbe dato molti falsi allarmi: per questo il colore dipende solo dal livello e la pioggia resta un segnale da tenere d'occhio.</p>
+      <p>Applicando la scala ai dati giornalieri dal 1998: 1 giorno rosso (3 novembre 2023, 181 mm a Gamberame con il terreno saturo), 11 arancioni, 25 gialli e 40 in sorveglianza. Il temporale del 9 settembre 2024 (oltre 100 mm con il terreno non saturo) resta arancione. Il livello medio del giorno a San Piero non ha mai superato 5,50 m (massimo 5,15 m il 14 marzo 2025).</p>
       <p class="muted">Una verifica ora per ora sarà possibile con le letture ogni 15 minuti che l'app salva da adesso in poi, o chiedendo i dati orari al Servizio Idrologico.</p>
     </div>
     <div class="card info">
@@ -315,8 +324,38 @@
 </nav>
 
 <script>
-const COL = { 'Rosso': 'var(--rosso)', 'Arancione': 'var(--arancio)', 'Giallo': 'var(--giallo)', 'Nessuna allerta': 'var(--verde)', 'Non disponibile': 'var(--neutro)' };
-const NOME = { 'Rosso': 'Allerta rossa', 'Arancione': 'Allerta arancione', 'Giallo': 'Allerta gialla', 'Nessuna allerta': 'Nessuna allerta', 'Non disponibile': 'Livello non disponibile' };
+const COL = { 'Rosso': 'var(--rosso)', 'Arancione': 'var(--arancio)', 'Giallo': 'var(--giallo)', 'Sorveglianza': 'var(--sorv)', 'Nessuna allerta': 'var(--verde)', 'Non disponibile': 'var(--neutro)' };
+const NOME = { 'Rosso': 'Allerta rossa', 'Arancione': 'Allerta arancione', 'Giallo': 'Allerta gialla', 'Sorveglianza': 'Sorveglianza', 'Nessuna allerta': 'Nessuna allerta', 'Non disponibile': 'Livello non disponibile' };
+/* Scala a 5 livelli: stesse regole dello script (REGOLE in aggiorna.py) */
+const SCALA = ['Nessuna allerta', 'Sorveglianza', 'Giallo', 'Arancione', 'Rosso'];
+const rango = (l) => Math.max(0, SCALA.indexOf(l));
+const REG_DEF = { san_piero_m: { sorveglianza: 3.0, giallo: 3.5, arancione: 4.5, rosso: 5.5 }, pioggia_giallo_mm: 60, pioggia_arancione_mm: 80, pioggia_arancione_36h_mm: 120, pioggia_rosso_mm: 100, terreno_bagnato_percentile: 85 };
+const regole = () => Object.assign({}, REG_DEF, (DATI && DATI.soglie_indice && DATI.soglie_indice.regole) || {});
+function regolaPioggia(mm24, mm48, perc) {
+  const R = regole();
+  if (mm24 != null && mm24 >= R.pioggia_rosso_mm) return perc != null && perc >= R.terreno_bagnato_percentile ? ['Rosso', `${n(mm24, 0)} mm in 24 ore con il terreno molto bagnato`] : ['Arancione', `${n(mm24, 0)} mm in 24 ore (terreno non saturo)`];
+  if (mm24 != null && mm24 >= R.pioggia_arancione_mm) return ['Arancione', `${n(mm24, 0)} mm in 24 ore`];
+  if (mm48 != null && mm48 >= R.pioggia_arancione_36h_mm) return ['Arancione', `${n(mm48, 0)} mm in due giorni`];
+  if (mm24 != null && mm24 >= R.pioggia_giallo_mm) return ['Giallo', `${n(mm24, 0)} mm in 24 ore`];
+  return ['Nessuna allerta', null];
+}
+function regolaLivelloMedio(lv) {
+  const S = regole().san_piero_m;
+  if (lv == null) return ['Nessuna allerta', null];
+  if (lv >= S.rosso) return ['Rosso', `San Piero ${n(lv)} m, oltre la seconda soglia ufficiale`];
+  for (const [k, l] of [['arancione', 'Arancione'], ['giallo', 'Giallo'], ['sorveglianza', 'Sorveglianza']]) if (lv >= S[k]) return [l, `San Piero ${n(lv)} m`];
+  return ['Nessuna allerta', null];
+}
+const piuAlto = (...x) => x.reduce((a, b) => rango(b[0]) > rango(a[0]) ? b : a);
+let PERC_MESE = null;
+function prepPercentili() {
+  const cum = [0]; for (const r of STORICO) cum.push(cum[cum.length - 1] + (r.pioggia_gamberame_mm || 0));
+  const per = {}; for (let m = 1; m <= 12; m++) per[m] = [];
+  for (let i = 15; i < STORICO.length; i++) { const m = +STORICO[i].data.slice(5, 7); const v = cum[i] - cum[i - 15]; for (const mm of [m, (m % 12) + 1, ((m + 10) % 12) + 1]) per[mm].push(v); }
+  for (const m in per) per[m].sort((a, b) => a - b);
+  PERC_MESE = per; return cum;
+}
+function percentile(api, mese) { const a = PERC_MESE && PERC_MESE[mese]; if (!a || !a.length || api == null) return null; let lo = 0, hi = a.length; while (lo < hi) { const md = (lo + hi) >> 1; if (a[md] < api) lo = md + 1; else hi = md; } return 100 * lo / a.length; }
 const n = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? 'n.d.' : Number(v).toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d });
 const $ = (id) => document.getElementById(id);
 const svgEl = (tag, attrs = {}, text) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; };
@@ -354,7 +393,13 @@ async function carica() {
     if (!STORICO || STORICO_AGG !== DATI.storico_aggiornato) {
       const s = await (await fetch('storico.json?v=' + encodeURIComponent(DATI.storico_aggiornato || ''))).json();
       STORICO = s.righe.map((x) => Object.fromEntries(s.campi.map((k, i) => [k, x[i]])));
-      for (const r of STORICO) { const l = r.livello_san_piero_m; r.indice = l == null ? null : Math.floor(1e-9 + 100 * quotaLivello(l, [3.5, 4.5, 5.5])); r.livello = r.indice == null ? null : livello(r.indice); }
+      const cum = prepPercentili(); let ieri = null;
+      STORICO.forEach((r, i) => {
+        const l = r.livello_san_piero_m; r.indice = l == null ? null : Math.floor(1e-9 + 100 * quotaLivello(l, [3.5, 4.5, 5.5]));
+        const g = r.pioggia_gamberame_mm, perc = i >= 15 ? percentile(cum[i] - cum[i - 15], +r.data.slice(5, 7)) : null;
+        [r.livello, r.causa] = piuAlto(regolaLivelloMedio(l), regolaPioggia(g, g == null ? null : g + (ieri || 0), perc));
+        ieri = g;
+      });
       STORICO_AGG = DATI.storico_aggiornato;
     }
   } catch (e) { $('aggiornato').textContent = 'Dati non disponibili'; return; }
@@ -432,9 +477,10 @@ function disegnaStato() {
   }
   if (sp && sp.livello != null) {
     const [gi, ar, ro] = soglie().livelli.san_piero;
-    const prossima = sp.livello < gi ? [gi, 'gialla'] : sp.livello < ar ? [ar, 'arancione'] : sp.livello < ro ? [ro, 'rossa'] : null;
-    parti.push(prossima ? `Mancano ${n(prossima[0] - sp.livello)} m alla soglia ${prossima[1]} (${n(prossima[0])} m).` : 'Oltre la soglia rossa.');
+    parti.push(sp.livello < gi ? `Mancano ${n(gi - sp.livello)} m alla prima soglia ufficiale (${n(gi)} m).` : sp.livello < ro ? `Mancano ${n(ro - sp.livello)} m alla seconda soglia ufficiale (${n(ro)} m).` : 'Oltre la seconda soglia ufficiale.');
   } else parti.push('Il livello a San Piero a Ponti non è disponibile: segui gli avvisi ufficiali.');
+  if ((s.motivi || []).length) parti.push('Perché: ' + s.motivi.join('; ') + '.');
+  if (s.in_attesa_di) parti.push(`Se la situazione resta così, entro un'ora passa a: ${NOME[s.in_attesa_di].toLowerCase()}.`);
   $('stato-frase').textContent = parti.join(' ');
   const seg = s.segnali || [];
   $('segnali').hidden = !seg.length;
@@ -597,7 +643,7 @@ function preparaAnni() {
 }
 function disegnaConteggi() {
   const righe = STORICO.filter(filtroAnno()); const box = $('conteggi'); box.replaceChildren();
-  for (const [liv, lab] of [['Rosso', 'rossi'], ['Arancione', 'arancioni'], ['Giallo', 'gialli']]) {
+  for (const [liv, lab] of [['Rosso', 'rossi'], ['Arancione', 'arancioni'], ['Giallo', 'gialli'], ['Sorveglianza', 'in sorveglianza']]) {
     const c = htmlEl('div', 'staz'); const v = htmlEl('div', 'val num', String(righe.filter((r) => r.livello === liv).length)); v.style.color = COL[liv];
     c.append(v, htmlEl('div', 'nome', 'giorni ' + lab)); box.append(c);
   }
@@ -615,7 +661,7 @@ function disegnaIndice() {
   assi(svg, W, H, m, ys, [0, 55, 100].filter((t) => t <= ymax), tick);
   righe.forEach((r, i) => { if (r.indice <= 0) return; svg.appendChild(svgEl('rect', { x: m.l + i * bw, width: Math.max(1, bw - (bw > 3 ? 1 : 0)), y: ys(r.indice), height: ys(0) - ys(r.indice), fill: r.livello === 'Nessuna allerta' ? 'var(--neutro)' : COL[r.livello], rx: bw > 4 ? 1.5 : 0 })); });
   box.appendChild(svg);
-  tooltip(box, svg, W, m, righe, (d, i) => m.l + (i + .5) * bw, (d) => `${fData(d.data)} · ${d.livello ? NOME[d.livello] : 'livello S. Piero non disponibile'}\nPioggia Gamberame ${n(d.pioggia_gamberame_mm, 1)} mm · Campi ${n(d.pioggia_campi_mm, 1)} mm\nS. Piero ${n(d.livello_san_piero_m)} m · Gamberame ${n(d.livello_gamberame_m)} m`);
+  tooltip(box, svg, W, m, righe, (d, i) => m.l + (i + .5) * bw, (d) => `${fData(d.data)} · ${NOME[d.livello] || 'Nessuna allerta'}${d.causa ? ' (' + d.causa + ')' : ''}\nPioggia Gamberame ${n(d.pioggia_gamberame_mm, 1)} mm · Campi ${n(d.pioggia_campi_mm, 1)} mm\nS. Piero ${n(d.livello_san_piero_m)} m · Gamberame ${n(d.livello_gamberame_m)} m`);
 }
 function pillCell(liv) { const td = htmlEl('td'); const s = htmlEl('span', 'pill'); const i = htmlEl('i'); i.style.background = COL[liv]; s.append(i, liv); td.append(s); return td; }
 function disegnaTabella() {
@@ -676,10 +722,12 @@ function simula() {
   const lv = vic.map((r) => r.l1).sort((a, b) => a - b);
   const med = (lv[2] + lv[3]) / 2;
   const S = soglie();
-  const idx = Math.floor(1e-9 + 100 * quotaLivello(med, S.livelli.san_piero)), liv = livello(idx);
+  const idx = Math.floor(1e-9 + 100 * quotaLivello(med, S.livelli.san_piero));
+  const domani = new Date(Date.now() + 864e5).getMonth() + 1;
+  const [liv, motivo] = piuAlto(regolaLivelloMedio(med), regolaPioggia(G, G + P, percentile(T, domani)));
   anello($('anello-sim'), idx, liv, 'm stimati', n(med));
   $('sim-etichetta').textContent = NOME[liv]; $('sim-etichetta').style.color = COL[liv]; $('sim-dot').style.background = COL[liv];
-  $('sim-frase').textContent = `Con ${n(G, 0)} mm a Gamberame, il livello medio a San Piero a Ponti potrebbe arrivare a circa ${n(med)} m (nei casi simili tra ${n(lv[0])} e ${n(lv[lv.length - 1])} m). È un livello medio del giorno: il picco può essere più alto.`;
+  $('sim-frase').textContent = `Con ${n(G, 0)} mm a Gamberame, il livello medio a San Piero a Ponti potrebbe arrivare a circa ${n(med)} m (nei casi simili tra ${n(lv[0])} e ${n(lv[lv.length - 1])} m). È un livello medio del giorno: il picco può essere più alto.${motivo ? ' Pesa di più: ' + motivo + '.' : ''}`;
   $('sim-avviso').hidden = !(G > 110 || G > 1.25 * Math.max(...vic.map((r) => r.g)) + 5);
   $('s-tab').replaceChildren(...vic.map((r) => { const tr = htmlEl('tr'); tr.append(htmlEl('td', '', fData(r.data)), htmlEl('td', '', n(r.g, 1) + ' mm'), htmlEl('td', '', n(r.p, 1) + ' mm'), htmlEl('td', '', n(r.t, 0) + ' mm'), htmlEl('td', '', n(r.l0) + ' m'), htmlEl('td', '', n(r.l1) + ' m')); return tr; }));
 }
@@ -687,8 +735,6 @@ function simula() {
 /* ---------- info ---------- */
 function disegnaSoglie() {
   const S = soglie(); const f = (x) => n(x, 2) + ' m';
-  const tr = htmlEl('tr'); tr.append(htmlEl('td', '', 'Bisenzio'), htmlEl('td'), ...S.livelli.san_piero.map((x) => htmlEl('td', '', f(x))));
-  $('tab-soglie').replaceChildren(tr);
   const G = S.segnali || {}, L = G.livello_m || { gamberame: 1.8, marina: 1.5 }, V = G.velocita_cm_ora || {};
   const voci = [
     `Bisenzio a Gamberame oltre ${f(L.gamberame)} (prima soglia ufficiale)`,
