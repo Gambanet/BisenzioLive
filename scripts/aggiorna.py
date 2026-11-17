@@ -59,18 +59,23 @@ PLUVIO = {
     "vaiano": {"id": "TOS11000503", "nome": "Vaiano acquedotto"},
     "calenzano": {"id": "TOS01004784", "nome": "Calenzano (Marina)"},
 }
-# Soglie dell'indicatore (100 = rosso)
-SOGLIA = {"pioggia24h": 100.0, "pioggia48h": 140.0}
-# Livelli del Bisenzio [giallo, arancione, rosso] in metri.
-# Giallo = prima soglia ufficiale SIR, rosso = seconda soglia, arancione a metà.
+# Livelli [giallo, arancione, rosso] in metri. Giallo = prima soglia ufficiale SIR, rosso = seconda, arancione a metà.
+# Per l'allerta conta solo S. Piero a Ponti; gli altri servono per le scale colorate delle stazioni.
 SOGLIE_LIVELLO = {"san_piero": [3.5, 4.5, 5.5], "gamberame": [1.8, 2.3, 2.8],
                   "marina": [1.5, 2.0, 2.5], "signa": [5.0, 6.25, 7.5]}
-# Velocità di crescita del livello [giallo, arancione, rosso] in cm/ora (max tra ultima ora e media 3 ore).
-# Valori iniziali da verificare quando l'app avrà raccolto qualche piena con dati ogni 15 minuti.
-SOGLIE_VELOCITA = {"san_piero": [15, 30, 50], "gamberame": [25, 50, 80], "marina": [20, 40, 60], "signa": [15, 30, 50]}
-# Pioggia breve: tempo di ritorno stimato dal SIR [giallo, arancione, rosso] in anni (1, 3, 6, 12 e 24 ore)
-SOGLIE_TEMPO_RITORNO = [2, 5, 20]
+# Tempo di ritorno stimato dal SIR (1, 3, 6, 12 e 24 ore): solo registrato, non usato.
+# La classe "2" compare anche con piogge normali, quindi non dice niente di utile.
 DURATE_TR = ["1h", "3h", "6h", "12h", "24h"]
+# L'allerta (giallo / arancione / rosso) dipende SOLO dal livello a S. Piero a Ponti.
+# Gli altri indicatori sono "segnali da tenere d'occhio": non cambiano mai il colore.
+SOGLIE_SEGNALI = {
+    "livello_m": {"gamberame": 1.8, "marina": 1.5},                         # prima soglia ufficiale SIR
+    "velocita_cm_ora": {"san_piero": 30, "gamberame": 50, "marina": 40},    # salita rapida
+    "pioggia_rara_volte": 30,   # pioggia 24 ore superata al massimo 30 giorni dal 1998 (circa una volta l'anno)
+    "pioggia_minima_mm": 10,    # sotto questa pioggia non si calcola quante volte è capitata
+}
+# Colmo da Gamberame: se ne parla solo se a Gamberame il livello è salito di almeno questo (m) nelle 24 ore
+SALITA_MINIMA_COLMO_M = 0.40
 # Arno alto a Signa: il Bisenzio scarica più lentamente (rigurgito)
 ARNO_RIGURGITO_M = 4.0
 # Tempo di arrivo del colmo da Gamberame a S. Piero a Ponti (ore). Valore iniziale dall'evento del 16/11/2026,
@@ -283,7 +288,7 @@ def previsione_colmo(analisi, ritardo, adesso):
     if not g:
         return None
     salita = g["colmo_24h"]["livello"] - g["minimo_24h"]
-    if salita < 0.15:
+    if salita < SALITA_MINIMA_COLMO_M:
         return None
     ore = ritardo["ore"]
     sale = (g["cm_ora_1h"] or 0) > 3
@@ -291,7 +296,7 @@ def previsione_colmo(analisi, ritardo, adesso):
     if sale:
         return {"stato": "in_salita", "non_prima_di": (adesso + timedelta(hours=ore)).isoformat(timespec="minutes"),
                 "ritardo_ore": ore,
-                "testo": f"A Gamberame il livello sta ancora salendo: il colmo a S. Piero a Ponti arriverà non prima delle {adesso + timedelta(hours=ore):%H:%M} (circa {ore:.0f} ore dopo il colmo di Gamberame)."}
+                "testo": f"A Gamberame il livello sta salendo: l'aumento arriverà a S. Piero a Ponti circa {ore:.0f} ore dopo, quindi non prima delle {adesso + timedelta(hours=ore):%H:%M}."}
     arrivo = t_colmo_g + timedelta(hours=ore)
     if arrivo < adesso - timedelta(hours=1):
         return None
@@ -365,62 +370,62 @@ def livello_allerta(indice):
 
 
 def indice_giornaliero(righe):
-    """Stesso indicatore del cruscotto, sui dati giornalieri."""
-    ieri = 0.0
+    """Stessa regola dell'app, sui dati giornalieri: conta solo il livello medio a S. Piero a Ponti."""
     for r in righe:
-        p24 = max(r["pioggia_gamberame_mm"] or 0, r["pioggia_campi_mm"] or 0)
-        p48 = p24 + ieri
-        ieri = p24
-        misure = [("Pioggia 24h", p24 / SOGLIA["pioggia24h"]), ("Pioggia 48h", p48 / SOGLIA["pioggia48h"])]
-        if r["livello_san_piero_m"] is not None:
-            misure.append(("Livello S. Piero", quota_livello(r["livello_san_piero_m"], SOGLIE_LIVELLO["san_piero"])))
-        if r["livello_gamberame_m"] is not None:
-            misure.append(("Livello Gamberame", quota_livello(r["livello_gamberame_m"], SOGLIE_LIVELLO["gamberame"])))
-        causa, quota = max(misure, key=lambda x: x[1])
-        r["indice"] = round(100 * quota)
+        if r["livello_san_piero_m"] is None:
+            r["indice"], r["livello"], r["causa"] = None, None, None
+            continue
+        r["indice"] = int(1e-9 + 100 * quota_livello(r["livello_san_piero_m"], SOGLIE_LIVELLO["san_piero"]))
         r["livello"] = livello_allerta(r["indice"])
-        r["causa"] = causa
+        r["causa"] = "Livello S. Piero"
     return righe
 
 
-def quota_tr(tr):
-    """Tempo di ritorno (anni) -> quota dell'indice: 2 anni = 0,55, 5 anni = 0,75, 20 anni = 1."""
-    if tr is None or tr <= 0:
-        return 0.0
-    return quota_livello(tr, SOGLIE_TEMPO_RITORNO)
+def volte_dal_1998(mm, storico_righe, campo):
+    """Quanti giorni dal 1998 la pioggia giornaliera ha raggiunto almeno questi millimetri."""
+    valori = [r[campo] for r in storico_righe or [] if r.get(campo) is not None]
+    if not valori or mm is None or mm < SOGLIE_SEGNALI["pioggia_minima_mm"]:
+        return None
+    anni = max(1.0, (len(valori)) / 365.25)
+    volte = sum(1 for v in valori if v >= mm)
+    return {"volte": volte, "anni": round(anni, 1), "dal": storico_righe[0]["data"][:4]}
 
 
-def indice_tempo_reale(tr, analisi):
-    """Stima su valori istantanei. Prende la misura più critica tra pioggia, intensità, livelli e velocità di salita."""
-    misure = []
+def indice_tempo_reale(tr, analisi, storico_righe=None):
+    """Allerta stimata: dipende SOLO dal livello del Bisenzio a S. Piero a Ponti
+    (giallo 3,50 m, arancione 4,50 m, rosso 5,50 m). Gli altri indicatori diventano
+    segnali da tenere d'occhio, che non cambiano il colore."""
     p = tr["piogge"]
-    p24 = max([x["mm_24h"] for x in p.values() if x and not x["vecchio"] and x["mm_24h"] is not None] or [0])
-    misure.append(("Pioggia 24 ore", p24 / SOGLIA["pioggia24h"]))
-    g = p.get("gamberame")
-    if g and g["mm_36h"] is not None:
-        misure.append(("Pioggia 36 ore a Gamberame", g["mm_36h"] / SOGLIA["pioggia48h"]))
-    for chiave, x in p.items():
+    sp = tr["livelli"].get("san_piero")
+    if sp and sp["livello"] is not None and not sp["vecchio"]:
+        indice = int(1e-9 + 100 * quota_livello(sp["livello"], SOGLIE_LIVELLO["san_piero"]))
+        livello, causa = livello_allerta(indice), "Livello Bisenzio a S. Piero a Ponti"
+    else:
+        indice, livello, causa = None, "Non disponibile", "Livello a S. Piero a Ponti non disponibile"
+
+    segnali = []
+    for chiave, soglia in SOGLIE_SEGNALI["livello_m"].items():
+        l = tr["livelli"].get(chiave)
+        if l and l["livello"] is not None and not l["vecchio"] and l["livello"] >= soglia:
+            segnali.append(f"{l['fiume']} a {l['nome']} a {fmt(l['livello'], 2, ' m')}, oltre la prima soglia ufficiale ({fmt(soglia, 2, ' m')})")
+    for chiave, soglia in SOGLIE_SEGNALI["velocita_cm_ora"].items():
+        l, a = tr["livelli"].get(chiave), analisi.get(chiave)
+        if not (l and a) or l["vecchio"]:
+            continue
+        vel = max([v for v in (a["cm_ora_1h"], a["cm_ora_3h"]) if v is not None] or [0])
+        if vel >= soglia:
+            segnali.append(f"{l['fiume']} a {l['nome']} in salita rapida ({vel} cm all'ora)")
+    for chiave, campo in (("gamberame", "pioggia_gamberame_mm"), ("campi", "pioggia_campi_mm")):
+        x = p.get(chiave)
         if not x or x["vecchio"]:
             continue
-        for durata, anni in (x.get("tempo_ritorno") or {}).items():
-            if anni:
-                quanto = "1 ora" if durata == "1h" else durata.replace("h", " ore")
-                misure.append((f"Pioggia in {quanto} a {x['nome']}: tempo di ritorno {anni:g} anni", quota_tr(anni)))
-    for chiave in SOGLIE_LIVELLO:
-        l = tr["livelli"].get(chiave)
-        if l and l["livello"] is not None and not l["vecchio"]:
-            misure.append((f"Livello {l['fiume']} a {l['nome']}", quota_livello(l["livello"], SOGLIE_LIVELLO[chiave])))
-        a = analisi.get(chiave)
-        if a and l and not l["vecchio"]:
-            vel = max([v for v in (a["cm_ora_1h"], a["cm_ora_3h"]) if v is not None] or [0])
-            if vel > 0:
-                misure.append((f"Salita {l['fiume']} a {l['nome']} ({vel} cm/ora)", quota_livello(vel, SOGLIE_VELOCITA[chiave])))
-    misure.sort(key=lambda x: -x[1])
-    causa, quota = misure[0]
-    indice = round(100 * quota)
+        rar = volte_dal_1998(x["mm_24h"], storico_righe, campo)
+        x["rarita_24h"] = rar
+        if rar and rar["volte"] <= SOGLIE_SEGNALI["pioggia_rara_volte"]:
+            quante = "mai successo" if rar["volte"] == 0 else ("successo solo 1 giorno" if rar["volte"] == 1 else f"successo solo {rar['volte']} giorni")
+            segnali.append(f"Pioggia abbondante a {x['nome']}: {fmt(x['mm_24h'], 0, ' mm')} in 24 ore, {quante} dal {rar['dal']}")
     vecchi = [f"{x['nome']}" for x in list(tr["livelli"].values()) + list(p.values()) if x and x["vecchio"]]
-    return {"indice": indice, "livello": livello_allerta(indice), "causa": causa,
-            "altre_cause": [{"misura": m, "indice": round(100 * q)} for m, q in misure[1:4] if q >= 0.4],
+    return {"indice": indice, "livello": livello, "causa": causa, "segnali": segnali,
             "dati_non_aggiornati": vecchi}
 
 
@@ -636,8 +641,7 @@ def simula(storico_righe, pioggia, livello, pioggia_prima, pioggia_15g=None, k=6
     pool.sort(key=distanza)
     vicini = sorted(r[3] for r in pool[:k])
     stima = (vicini[k // 2 - 1] + vicini[k // 2]) / 2
-    quota = max(pioggia / SOGLIA["pioggia24h"], (pioggia + pioggia_prima) / SOGLIA["pioggia48h"], quota_livello(stima, SOGLIE_LIVELLO["san_piero"]))
-    indice = round(100 * quota)
+    indice = int(1e-9 + 100 * quota_livello(stima, SOGLIE_LIVELLO["san_piero"]))
     return {"livello_stimato_m": round(stima, 2), "min_m": vicini[0], "max_m": vicini[-1],
             "indice": indice, "livello": livello_allerta(indice)}
 
@@ -730,7 +734,7 @@ def main():
                     tr["livelli"][chiave].update(a)
         except requests.RequestException as e:
             print(f"Serie {chiave} non scaricata:", e, file=sys.stderr)
-    stima = indice_tempo_reale(tr, analisi)
+    stima = indice_tempo_reale(tr, analisi, storico_righe)
 
     ritardi = ritardi_osservati(serie, vecchio.get("ritardi", []), adesso)
     ritardo = stima_ritardo(ritardi)
@@ -765,8 +769,8 @@ def main():
     dati = {
         "aggiornato": adesso.isoformat(timespec="minutes"),
         "fonte": "Servizio Idrologico Regionale Toscana - sir.toscana.it (dati in tempo reale non validati)",
-        "soglie_indice": {**SOGLIA, "livelli": SOGLIE_LIVELLO, "velocita_cm_ora": SOGLIE_VELOCITA,
-                          "tempo_ritorno_anni": SOGLIE_TEMPO_RITORNO, "arno_rigurgito_m": ARNO_RIGURGITO_M},
+        "soglie_indice": {"livelli": SOGLIE_LIVELLO, "segnali": SOGLIE_SEGNALI, "arno_rigurgito_m": ARNO_RIGURGITO_M,
+                          "regola": "allerta solo dal livello a S. Piero a Ponti"},
         "allerta_ufficiale": ufficiale,
         "tempo_reale": tr,
         "stima": stima,
@@ -791,22 +795,16 @@ def main():
     if stima["livello"] != prima:
         motivi.append("cambia l'allerta stimata")
     superate = soglie_superate(tr)
-    if superate and set(superate) != set(vecchio.get("_soglie_superate", [])):
-        motivi.append("soglia superata")
     oggi_k, domani_k = adesso.date().isoformat(), (adesso.date() + timedelta(days=1)).isoformat()
     def colore_uff(dati_uff, k):
         return (((dati_uff or {}).get("giorni") or {}).get(k) or {}).get("colore", "VERDE")
     uff_prima = vecchio.get("allerta_ufficiale")
     if ufficiale and (colore_uff(ufficiale, oggi_k), colore_uff(ufficiale, domani_k)) != (colore_uff(uff_prima, oggi_k), colore_uff(uff_prima, domani_k)):
         motivi.append("nuova allerta ufficiale")
-    if colmo and colmo["stato"] in ("atteso", "in_salita") and (vecchio.get("colmo") or {}).get("stato") != colmo["stato"]:
-        motivi.append("piena in arrivo")
     sim = previsione.get("simulazione") or {}
     sim_prima = ((vecchio.get("previsione") or {}).get("simulazione") or {}).get("livello")
     if sim.get("livello") in ("Arancione", "Rosso") and sim.get("livello") != sim_prima:
         motivi.append("previsione per domani")
-    if stima["dati_non_aggiornati"] and not (vecchio.get("stima") or {}).get("dati_non_aggiornati"):
-        motivi.append("stazioni senza dati")
     dati["_soglie_superate"] = superate
     DATA_FILE.write_text(json.dumps(dati, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
@@ -816,8 +814,8 @@ def main():
         def vel(l):
             v = l.get("cm_ora_1h")
             return "" if v is None else f" ({'+' if v > 0 else ''}{v} cm/h)"
-        msg = [f"Bisenzio {adesso:%d/%m %H:%M} - allerta stimata: {stima['livello']} (indice {stima['indice']})",
-               f"Causa: {stima['causa']}"]
+        msg = [f"Bisenzio {adesso:%d/%m %H:%M} - allerta stimata: {stima['livello']}",
+               "Regola: gialla da 3,50 m, arancione da 4,50 m, rossa da 5,50 m a S. Piero a Ponti."]
         if ufficiale:
             msg.append(f"Allerta ufficiale zona B: oggi {colore_uff(ufficiale, oggi_k).lower()}, domani {colore_uff(ufficiale, domani_k).lower()}")
         msg.append(f"S. Piero a Ponti {fmt(sp.get('livello'), 2, ' m')}{vel(sp)} | Gamberame {fmt(ga.get('livello'), 2, ' m')}{vel(ga)}")
@@ -826,7 +824,8 @@ def main():
             msg.append(colmo["testo"])
         if rigurgito:
             msg.append(f"Arno alto a Signa ({fmt(arno.get('livello'), 2, ' m')}): il Bisenzio scarica piu' lentamente.")
-        msg += superate
+        if stima["segnali"]:
+            msg.append("Da tenere d'occhio: " + "; ".join(stima["segnali"]))
         if stima["dati_non_aggiornati"]:
             msg.append("Senza dati recenti: " + ", ".join(stima["dati_non_aggiornati"]))
         if sim:
