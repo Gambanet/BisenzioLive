@@ -115,6 +115,27 @@
   .conteggi .staz { text-align: center; }
   .conteggi .val { font-size: 1.7rem; }
 
+  .ufficiale { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-left: 6px solid var(--uff, var(--verde)); }
+  .ufficiale .uff-col { font-family: var(--f-titolo); font-weight: 800; font-size: 1.05rem; }
+  .ufficiale .uff-giorni { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .badge-uff { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; }
+  .cause { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .84rem; }
+  .cause:empty { display: none; }
+  .righe-info { display: flex; flex-direction: column; gap: 10px; }
+  .riga-info { display: flex; gap: 12px; align-items: flex-start; background: var(--panel2); border-radius: 12px; padding: 12px; }
+  .riga-info b { display: block; }
+  .riga-info .ico { font-size: 1.3rem; line-height: 1; }
+  .vel { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .vel span { font-size: .76rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--panel); }
+  .staz.vecchio { outline: 2px dashed var(--rosso); outline-offset: -2px; }
+  .eta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .eta.vecchio { color: var(--rosso); font-weight: 700; }
+  .tr-chip { display: inline-block; margin-top: 6px; font-size: .74rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; }
+  .terra { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+  .terra .big { font-family: var(--f-titolo); font-weight: 800; font-size: 1.5rem; }
+  .barra-terra { height: 8px; border-radius: 6px; background: linear-gradient(90deg, #d9c49a, #8fb97d, #3e9b74, #1c6a86, #0f3b4c); position: relative; margin-top: 8px; }
+  .barra-terra i { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--panel); border: 3px solid var(--fg); transform: translate(-50%, -50%); }
+
   /* Info */
   .info p, .info li { color: var(--fg); }
   .info ul { padding-left: 18px; margin: 6px 0; }
@@ -146,6 +167,8 @@
 <main>
   <!-- ADESSO -->
   <section data-vista="adesso" id="adesso">
+    <div class="card ufficiale" id="ufficiale" hidden></div>
+
     <div class="card">
       <div class="stato">
         <div class="anello" id="anello"></div>
@@ -155,21 +178,34 @@
           <p id="stato-frase"></p>
         </div>
       </div>
+      <ul class="cause" id="altre-cause"></ul>
+      <div class="avviso" id="dati-vecchi" hidden></div>
     </div>
 
     <div class="card">
-      <h2>Livello del Bisenzio</h2>
+      <h2>Prossime ore</h2>
+      <div class="righe-info" id="prossime"></div>
+      <p class="muted">Radar della pioggia: <a href="https://radar.protezionecivile.it" target="_blank" rel="noopener">Protezione Civile</a> · <a href="https://www.lamma.toscana.it/meteo/radar" target="_blank" rel="noopener">LaMMA</a></p>
+    </div>
+
+    <div class="card">
+      <h2>Livelli <small>ultimo dato e velocità di salita</small></h2>
       <div class="griglia" id="livelli"></div>
     </div>
 
     <div class="card">
-      <h2>Pioggia <small>ultime 24 ore</small></h2>
+      <h2>Pioggia <small>ultime ore e tempo di ritorno</small></h2>
       <div class="griglia" id="piogge"></div>
     </div>
 
     <div class="card">
-      <h2>Ultime ore</h2>
-      <div class="legenda"><span><i style="background:var(--acqua)"></i>San Piero a Ponti</span><span><i style="background:var(--acqua2)"></i>Gamberame</span></div>
+      <h2>Terreno</h2>
+      <div id="terreno"></div>
+    </div>
+
+    <div class="card">
+      <h2>Ultime 36 ore</h2>
+      <div class="legenda" id="legenda-ore"></div>
       <div class="chart" id="chart-ore"></div>
     </div>
   </section>
@@ -199,13 +235,14 @@
         <div class="campo"><label for="s-p">Pioggia prevista a Gamberame (mm)</label><input id="s-p" type="number" min="0" max="400" step="1" inputmode="decimal" value="0"></div>
         <div class="campo"><label for="s-l">Livello attuale a San Piero a Ponti (m)</label><input id="s-l" type="number" min="0" max="8" step="0.05" inputmode="decimal" value="1.5"></div>
         <div class="campo"><label for="s-i">Pioggia ultime 24 ore a Gamberame (mm)</label><input id="s-i" type="number" min="0" max="400" step="1" inputmode="decimal" value="0"></div>
+        <div class="campo"><label for="s-t">Pioggia dei 15 giorni prima (terreno, mm)</label><input id="s-t" type="number" min="0" max="800" step="1" inputmode="decimal" value="30"></div>
         <p class="muted" id="s-fonte"></p>
       </details>
     </div>
 
     <div class="card">
       <h2>Giorni simili dal 1998</h2>
-      <div class="tabella"><table><thead><tr><th>Data</th><th>Pioggia</th><th>Giorno prima</th><th>Livello prima</th><th>Livello quel giorno</th></tr></thead><tbody id="s-tab"></tbody></table></div>
+      <div class="tabella"><table><thead><tr><th>Data</th><th>Pioggia</th><th>Giorno prima</th><th>15 giorni prima</th><th>Livello prima</th><th>Livello quel giorno</th></tr></thead><tbody id="s-tab"></tbody></table></div>
       <p class="muted">La stima è la mediana del livello raggiunto a San Piero a Ponti in questi giorni.</p>
     </div>
   </section>
@@ -236,9 +273,19 @@
     </div>
     <div class="card info">
       <h2>Come si calcola l'allerta</h2>
-      <p>Si prende la misura più critica tra pioggia e livelli.</p>
+      <p>Si prende la misura più critica tra pioggia, intensità della pioggia, livelli e velocità di salita. Le stazioni che non trasmettono da oltre 75 minuti vengono escluse e segnalate.</p>
       <div class="tabella"><table class="soglie"><thead><tr><th>Misura</th><th></th><th>Giallo</th><th>Arancione</th><th>Rosso</th></tr></thead><tbody id="tab-soglie"></tbody></table></div>
-      <p class="muted">Le soglie dei livelli sono quelle ufficiali del Servizio Idrologico (giallo = prima soglia, rosso = seconda), con l'arancione a metà. Per la pioggia di Gamberame, dove manca il dato si usa una stima dai pluviometri vicini.</p>
+      <p class="muted">Le soglie dei livelli sono quelle ufficiali del Servizio Idrologico (giallo = prima soglia, rosso = seconda), con l'arancione a metà. Le soglie di velocità sono valori iniziali, da verificare man mano che l'app raccoglie le piene ogni 15 minuti. Il tempo di ritorno della pioggia è quello stimato dal Servizio Idrologico per ogni pluviometro.</p>
+    </div>
+    <div class="card info">
+      <h2>Tempo di arrivo della piena</h2>
+      <p id="info-ritardo"></p>
+      <div class="tabella"><table><thead><tr><th>Colmo a Gamberame</th><th>Colmo a S. Piero</th><th>Ore</th></tr></thead><tbody id="tab-ritardi"></tbody></table></div>
+    </div>
+    <div class="card info">
+      <h2>Verifica sulle piene dal 1998</h2>
+      <p>Sui dati giornalieri, nei 23 giorni in cui il livello medio a San Piero a Ponti ha superato 3,50 m, la sola pioggia delle 24–48 ore avrebbe dato almeno giallo in 14 casi. Abbassando la soglia se ne prenderebbero di più, ma con molti falsi allarmi: per questo contano anche la velocità di salita, l'intensità oraria e il terreno, che lo storico giornaliero non permette di verificare.</p>
+      <p class="muted">Una verifica ora per ora sarà possibile con le letture ogni 15 minuti che l'app salva da adesso in poi, o chiedendo i dati orari al Servizio Idrologico.</p>
     </div>
     <div class="card info">
       <h2>Fonti</h2>
@@ -313,10 +360,10 @@ async function carica() {
 }
 
 function disegnaVista() {
-  if (VISTA === 'adesso') { disegnaStato(); disegnaLivelli(); disegnaPiogge(); disegnaOre(); }
+  if (VISTA === 'adesso') { disegnaUfficiale(); disegnaStato(); disegnaProssime(); disegnaLivelli(); disegnaPiogge(); disegnaTerreno(); disegnaOre(); }
   if (VISTA === 'domani') { mostraPrevisione(); simula(); }
   if (VISTA === 'storico') { disegnaConteggi(); disegnaIndice(); disegnaTabella(); }
-  if (VISTA === 'info') disegnaSoglie();
+  if (VISTA === 'info') { disegnaSoglie(); disegnaRitardi(); }
 }
 
 /* ---------- anello di stato ---------- */
@@ -340,51 +387,131 @@ function tendenza(l) {
   return { testo: 'stabile', freccia: '→', col: 'var(--muted)' };
 }
 
+const COL_UFF = { VERDE: 'var(--verde)', GIALLO: 'var(--giallo)', ARANCIONE: 'var(--arancio)', ROSSO: 'var(--rosso)' };
+const oggiISO = (d = 0) => { const x = new Date(Date.now() + d * 864e5); return x.toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }); };
+const quandoFa = (min) => min == null ? 'n.d.' : min < 60 ? `${min} min fa` : min < 1440 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min fa` : `${Math.floor(min / 1440)} giorni fa`;
+const ora = (iso) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+const etaReale = (x) => x && x.ora ? Math.round((Date.now() - new Date(x.ora)) / 60000) : null;
+
+function disegnaUfficiale() {
+  const u = DATI.allerta_ufficiale, box = $('ufficiale');
+  if (!u) { box.hidden = true; return; }
+  box.hidden = false;
+  const g = u.giorni || {}, o = g[oggiISO()] || { colore: 'VERDE', rischi: [] }, d = g[oggiISO(1)] || { colore: 'VERDE', rischi: [] };
+  box.style.setProperty('--uff', COL_UFF[o.colore]);
+  const testo = htmlEl('div');
+  testo.append(htmlEl('div', 'muted', 'Allerta ufficiale Regione Toscana · zona B'));
+  const nome = { VERDE: 'Nessuna allerta', GIALLO: 'Codice giallo', ARANCIONE: 'Codice arancione', ROSSO: 'Codice rosso' };
+  const t = htmlEl('div', 'uff-col', 'Oggi: ' + nome[o.colore]); t.style.color = COL_UFF[o.colore]; testo.append(t);
+  const rischi = [...new Set(o.rischi.map((r) => r.rischio.toLowerCase()))];
+  if (rischi.length) testo.append(htmlEl('div', 'muted', 'Rischio ' + rischi.join(', ')));
+  const gg = htmlEl('div', 'uff-giorni'); const bd = htmlEl('span', 'badge-uff', 'Domani: ' + nome[d.colore].toLowerCase()); bd.style.background = COL_UFF[d.colore]; gg.append(bd); testo.append(gg);
+  const link = Object.assign(htmlEl('a', 'muted', 'Bollettino del ' + new Date(u.emissione).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })), { href: u.fonte, target: '_blank', rel: 'noopener' });
+  link.style.color = 'var(--acqua)'; testo.append(link);
+  box.replaceChildren(testo);
+}
+
 function disegnaStato() {
   const s = DATI.stima, tr = DATI.tempo_reale;
   anello($('anello'), s.indice, s.livello, 'indice');
   $('stato-etichetta').textContent = NOME[s.livello]; $('stato-etichetta').style.color = COL[s.livello];
   $('stato-chip').querySelector('i').style.background = COL[s.livello];
-  const sp = tr.livelli.san_piero, pg = tr.piogge.gamberame;
+  const sp = tr.livelli.san_piero;
   const parti = [];
-  if (sp && sp.livello !== null) { const t = tendenza(sp); parti.push(`A San Piero a Ponti il Bisenzio è a ${n(sp.livello)} m${t.testo ? ', ' + t.testo : ''}.`); }
-  if (pg && pg.mm_24h !== null) parti.push(pg.mm_24h < 1 ? 'Nelle ultime 24 ore a Gamberame non ha piovuto.' : `A Gamberame ${n(pg.mm_24h, 0)} mm di pioggia nelle ultime 24 ore.`);
+  if (sp && sp.livello !== null) {
+    const v = sp.cm_ora_1h;
+    parti.push(`A San Piero a Ponti il Bisenzio è a ${n(sp.livello)} m` + (v == null ? '.' : v > 2 ? `, in salita di ${v} cm all'ora.` : v < -2 ? `, in calo di ${-v} cm all'ora.` : ', stabile.'));
+  }
   parti.push(`Pesa di più: ${s.causa.charAt(0).toLowerCase() + s.causa.slice(1)}.`);
   $('stato-frase').textContent = parti.join(' ');
+  $('altre-cause').replaceChildren(...(s.altre_cause || []).map((c) => htmlEl('li', '', `${c.misura} (indice ${c.indice})`)));
+  const vecchi = s.dati_non_aggiornati || [];
+  $('dati-vecchi').hidden = !vecchi.length;
+  $('dati-vecchi').textContent = vecchi.length ? `Attenzione: ${vecchi.join(', ')} non trasmett${vecchi.length > 1 ? 'ono' : 'e'} dati da oltre un'ora. La stima non ne tiene conto e la situazione reale potrebbe essere peggiore.` : '';
+  const etaApp = etaReale({ ora: DATI.aggiornato });
+  if (etaApp > 45) { $('dati-vecchi').hidden = false; $('dati-vecchi').textContent = `L'app non riceve dati nuovi da ${quandoFa(etaApp)}: i valori mostrati potrebbero non essere aggiornati. ` + $('dati-vecchi').textContent; }
 }
 
+function rigaInfo(ico, titolo, testo) { const r = htmlEl('div', 'riga-info'); r.append(htmlEl('span', 'ico', ico)); const t = htmlEl('div'); t.append(htmlEl('b', '', titolo), htmlEl('span', 'muted', testo)); r.append(t); return r; }
+function disegnaProssime() {
+  const box = $('prossime'); const righe = [];
+  const c = DATI.colmo, rit = DATI.ritardo_gamberame_san_piero;
+  if (c && c.stato === 'atteso') righe.push(rigaInfo('⏱', `Colmo atteso a S. Piero a Ponti verso le ${ora(c.ora)}`, c.testo));
+  else if (c && c.stato === 'in_salita') righe.push(rigaInfo('⏱', `Piena in arrivo da monte: colmo non prima delle ${ora(c.non_prima_di)}`, c.testo));
+  else if (c && c.stato === 'passato') righe.push(rigaInfo('✓', 'Colmo già passato', c.testo));
+  else righe.push(rigaInfo('〰', 'Nessuna piena in arrivo da Gamberame', rit ? `Quando il livello sale a Gamberame, il colmo arriva a S. Piero a Ponti circa ${n(rit.ore, 0)} ore dopo (${rit.fonte}).` : ''));
+  const p = DATI.prossime_ore;
+  if (p) righe.push(rigaInfo('☔', `Pioggia prevista nelle prossime ${p.ore} ore: ${n(p.media_mm, 1)} mm`, `Media alta valle, massimo ${n(p.max_mm, 1)} mm. Fonte: ${p.fonte}.`));
+  if (DATI.rigurgito_arno) { const a = DATI.tempo_reale.livelli.signa; righe.push(rigaInfo('⚠', `Arno alto a Signa (${n(a.livello)} m)`, 'Il Bisenzio sfocia nell\'Arno: con l\'Arno alto scarica più lentamente e il livello a San Piero a Ponti può salire anche senza piena da monte.')); }
+  box.replaceChildren(...righe);
+}
+
+function chipVel(v, soglie) {
+  if (v == null) return null;
+  const s = htmlEl('span', '', (v > 0 ? '+' : '') + v + ' cm/h');
+  const c = v >= soglie[2] ? 'var(--rosso)' : v >= soglie[1] ? 'var(--arancio)' : v >= soglie[0] ? 'var(--giallo)' : null;
+  if (c) { s.style.background = c; s.style.color = '#fff'; }
+  return s;
+}
 function disegnaLivelli() {
   const box = $('livelli'); box.replaceChildren();
-  const S = soglie().livelli;
-  for (const k of ['san_piero', 'gamberame']) {
+  const S = soglie(); const SV = S.velocita_cm_ora || {};
+  const nomi = { san_piero: 'Bisenzio · San Piero a Ponti', gamberame: 'Bisenzio · Gamberame (alta valle)', marina: 'Marina · Calenzano', signa: 'Arno · Ponte a Signa' };
+  for (const k of ['san_piero', 'gamberame', 'marina', 'signa']) {
     const l = DATI.tempo_reale.livelli[k]; if (!l) continue;
-    const [gi, ar, ro] = S[k]; const max = ro * 1.15;
+    const so = S.livelli[k] || [l.soglia1, (l.soglia1 + l.soglia2) / 2, l.soglia2];
+    const [gi, ar, ro] = so; const max = ro * 1.15;
     const pct = (v) => Math.max(0, Math.min(100, 100 * v / max));
-    const t = tendenza(l);
-    const card = htmlEl('div', 'staz');
-    card.append(htmlEl('div', 'nome', l.nome === 'S. Piero a Ponti' ? 'San Piero a Ponti (Signa)' : 'Gamberame (Vaiano)'));
+    const eta = etaReale(l), vecchio = eta == null || eta > 75;
+    const card = htmlEl('div', 'staz' + (vecchio ? ' vecchio' : ''));
+    card.append(htmlEl('div', 'nome', nomi[k]));
     const val = htmlEl('div', 'val num', n(l.livello)); val.appendChild(htmlEl('small', '', 'm')); card.append(val);
-    const sotto = htmlEl('div', 'sotto'); const f = htmlEl('span', 'tend', `${t.freccia} ${t.testo}`); f.style.color = t.col; sotto.append(f); card.append(sotto);
+    const vel = htmlEl('div', 'vel');
+    const v1 = chipVel(l.cm_ora_1h, SV[k] || [15, 30, 50]), v3 = chipVel(l.cm_ora_3h, SV[k] || [15, 30, 50]);
+    if (v1) { vel.append(v1); v1.title = 'ultima ora'; v1.textContent += ' ultima ora'; }
+    if (v3) { vel.append(v3); v3.textContent += ' media 3 ore'; }
+    if (!v1 && !v3) vel.append(htmlEl('span', '', tendenza(l).freccia + ' ' + tendenza(l).testo));
+    card.append(vel);
     const scala = htmlEl('div', 'scala');
     scala.style.setProperty('--g', pct(gi) + '%'); scala.style.setProperty('--a', pct(ar) + '%'); scala.style.setProperty('--r2', pct(ro) + '%');
     const cur = htmlEl('span', 'cursore'); cur.style.left = pct(l.livello || 0) + '%'; scala.append(cur);
     for (const v of [gi, ro]) { const tc = htmlEl('span', 'tacca', n(v, 1)); tc.style.left = pct(v) + '%'; scala.append(tc); }
     card.append(scala);
+    card.append(htmlEl('div', 'eta' + (vecchio ? ' vecchio' : ''), vecchio ? `⚠ Ultimo dato ${quandoFa(eta)}` : `Dato delle ${l.ora ? ora(l.ora) : 'n.d.'}`));
     box.append(card);
   }
 }
 
 function disegnaPiogge() {
   const box = $('piogge'); box.replaceChildren();
-  const nomi = { gamberame: 'Gamberame (alta valle)', campi: 'Campi Bisenzio (Case Passerini)' };
-  for (const k of ['gamberame', 'campi']) {
+  const TRs = soglie().tempo_ritorno_anni || [2, 5, 20];
+  const ordine = ['gamberame', 'vernio', 'cantagallo', 'vaiano', 'calenzano', 'campi'];
+  for (const k of ordine) {
     const p = DATI.tempo_reale.piogge[k]; if (!p) continue;
-    const card = htmlEl('div', 'staz');
-    card.append(htmlEl('div', 'nome', nomi[k]));
-    const val = htmlEl('div', 'val num', n(p.mm_24h, 1)); val.appendChild(htmlEl('small', '', 'mm')); card.append(val);
-    card.append(htmlEl('div', 'sotto', `ultima ora ${n(p.mm_1h, 1)} · 3 ore ${n(p.mm_3h, 1)} mm`));
+    const eta = etaReale(p), vecchio = eta == null || eta > 75;
+    const card = htmlEl('div', 'staz' + (vecchio ? ' vecchio' : ''));
+    card.append(htmlEl('div', 'nome', p.nome));
+    const val = htmlEl('div', 'val num', n(p.mm_24h, 1)); val.appendChild(htmlEl('small', '', 'mm in 24 h')); card.append(val);
+    card.append(htmlEl('div', 'sotto', `1 ora ${n(p.mm_1h, 1)} · 3 ore ${n(p.mm_3h, 1)} · 6 ore ${n(p.mm_6h, 1)} mm`));
+    const trv = Object.entries(p.tempo_ritorno || {}).filter(([, a]) => a).sort((a, b) => b[1] - a[1])[0];
+    if (trv && trv[1] >= TRs[0]) {
+      const [dur, anni] = trv; const c = htmlEl('span', 'tr-chip', `${dur.replace('h', ' ore').replace(/^1 ore$/, '1 ora')}: tempo di ritorno ${anni} anni`);
+      c.style.background = anni >= TRs[2] ? 'var(--rosso)' : anni >= TRs[1] ? 'var(--arancio)' : 'var(--giallo)'; card.append(c);
+    }
+    card.append(htmlEl('div', 'eta' + (vecchio ? ' vecchio' : ''), vecchio ? `⚠ Ultimo dato ${quandoFa(eta)}` : `Dato delle ${p.ora ? ora(p.ora) : 'n.d.'}`));
     box.append(card);
   }
+}
+
+function disegnaTerreno() {
+  const t = DATI.terreno, box = $('terreno');
+  if (!t) { box.replaceChildren(htmlEl('div', 'vuoto', 'Dato non disponibile')); return; }
+  const w = htmlEl('div', 'terra');
+  const sx = htmlEl('div'); sx.append(htmlEl('div', 'big', t.stato.charAt(0).toUpperCase() + t.stato.slice(1)), htmlEl('div', 'muted', `${n(t.pioggia_15g_mm, 0)} mm in 15 giorni`));
+  const dx = htmlEl('div'); dx.append(htmlEl('div', 'muted', `Più piovoso del ${t.percentile ?? 'n.d.'}% dei periodi simili dal 1998 (stessa stagione). Ultimi 7 giorni: ${n(t.pioggia_7g_mm, 0)} mm.`));
+  const b = htmlEl('div', 'barra-terra'); const i = htmlEl('i'); i.style.left = (t.percentile ?? 50) + '%'; b.append(i); dx.append(b);
+  w.append(sx, dx); box.replaceChildren(w);
+  box.append(htmlEl('p', 'muted', 'Con il terreno già bagnato la stessa pioggia produce piene più alte. Questo dato entra anche nel simulatore di domani.'));
 }
 
 /* ---------- grafici ---------- */
@@ -415,31 +542,33 @@ function tooltip(box, svg, W, m, righe, xOf, testo) {
 
 function disegnaOre() {
   const box = $('chart-ore'); box.replaceChildren();
-  const righe = (DATI.registro || []).filter((r) => r.san_piero !== null || r.gamberame !== null);
-  if (righe.length < 2) { box.append(htmlEl('div', 'vuoto', 'Il grafico si riempie con le letture orarie: torna fra qualche ora.')); return; }
-  const W = Math.max(300, box.clientWidth), H = 200, m = { l: 30, r: 8, t: 10, b: 22 };
-  const t0 = new Date(righe[0].ora), t1 = new Date(righe[righe.length - 1].ora);
-  const xs = (d) => m.l + (W - m.l - m.r) * (new Date(d.ora) - t0) / Math.max(1, t1 - t0);
-  const ymax = Math.ceil(Math.max(3, ...righe.map((r) => Math.max(r.san_piero || 0, r.gamberame || 0))) + 0.5);
+  const S = DATI.serie || {};
+  const linee = [['san_piero', 'var(--acqua)', 'S. Piero a Ponti'], ['gamberame', 'var(--acqua2)', 'Gamberame'], ['marina', 'var(--verde)', 'Marina'], ['signa', '#8a7f6a', 'Arno a Signa']].filter(([k]) => (S[k] || []).length > 1);
+  $('legenda-ore').replaceChildren(...linee.map(([, c, lab]) => { const s = htmlEl('span'); const i = htmlEl('i'); i.style.background = c; s.append(i, lab); return s; }));
+  if (!linee.length) { box.append(htmlEl('div', 'vuoto', 'Serie non disponibile in questo momento.')); return; }
+  const tutti = linee.flatMap(([k]) => S[k]);
+  const t0 = Math.min(...tutti.map((p) => +new Date(p[0]))), t1 = Math.max(...tutti.map((p) => +new Date(p[0])));
+  const W = Math.max(300, box.clientWidth), H = 220, m = { l: 30, r: 8, t: 10, b: 22 };
+  const xs = (t) => m.l + (W - m.l - m.r) * (t - t0) / Math.max(1, t1 - t0);
+  const ymax = Math.ceil(Math.max(3, ...tutti.map((p) => p[1])) + 0.3);
   const ys = (v) => m.t + (H - m.t - m.b) * (1 - v / ymax);
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Livelli del Bisenzio nelle ultime ore' });
-  const xt = [0, .5, 1].map((f) => { const t = new Date(+t0 + f * (t1 - t0)); return [m.l + f * (W - m.l - m.r), t.toLocaleString('it-IT', { weekday: 'short', hour: '2-digit', minute: '2-digit' })]; });
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Livelli nelle ultime 36 ore' });
+  const xt = [0, .5, 1].map((f) => { const t = new Date(t0 + f * (t1 - t0)); return [m.l + f * (W - m.l - m.r), t.toLocaleString('it-IT', { weekday: 'short', hour: '2-digit', minute: '2-digit' })]; });
   assi(svg, W, H, m, ys, Array.from({ length: ymax + 1 }, (_, i) => i), xt);
   const gi = soglie().livelli.san_piero[0];
   if (gi <= ymax) { svg.appendChild(svgEl('line', { x1: m.l, x2: W - m.r, y1: ys(gi), y2: ys(gi), stroke: 'var(--giallo)', 'stroke-dasharray': '5 4', 'stroke-width': 1.5 })); svg.appendChild(svgEl('text', { x: W - m.r, y: ys(gi) - 4, 'text-anchor': 'end' }, 'soglia gialla S. Piero')); }
-  const defs = svgEl('defs'); const grad = svgEl('linearGradient', { id: 'gsp', x1: 0, x2: 0, y1: 0, y2: 1 });
-  grad.append(svgEl('stop', { offset: '0%', 'stop-color': 'var(--acqua)', 'stop-opacity': .28 }), svgEl('stop', { offset: '100%', 'stop-color': 'var(--acqua)', 'stop-opacity': 0 }));
-  defs.append(grad); svg.append(defs);
-  const sp = righe.filter((r) => r.san_piero !== null);
-  if (sp.length > 1) svg.appendChild(svgEl('path', { d: `M${xs(sp[0])},${ys(0)} ` + sp.map((r) => `L${xs(r).toFixed(1)},${ys(r.san_piero).toFixed(1)}`).join(' ') + ` L${xs(sp[sp.length - 1])},${ys(0)} Z`, fill: 'url(#gsp)' }));
-  for (const [k, c] of [['san_piero', 'var(--acqua)'], ['gamberame', 'var(--acqua2)']]) {
-    const pts = righe.filter((r) => r[k] !== null).map((r) => `${xs(r).toFixed(1)},${ys(r[k]).toFixed(1)}`).join(' ');
-    svg.appendChild(svgEl('polyline', { points: pts, fill: 'none', stroke: c, 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+  for (const [k, c] of linee) {
+    const pts = S[k].map((p) => `${xs(+new Date(p[0])).toFixed(1)},${ys(p[1]).toFixed(1)}`).join(' ');
+    svg.appendChild(svgEl('polyline', { points: pts, fill: 'none', stroke: c, 'stroke-width': k === 'san_piero' ? 2.8 : 1.8, 'stroke-linejoin': 'round' }));
   }
-  const ult = righe[righe.length - 1];
-  if (ult.san_piero !== null) svg.appendChild(svgEl('circle', { cx: xs(ult), cy: ys(ult.san_piero), r: 4.5, fill: 'var(--acqua)', stroke: 'var(--panel)', 'stroke-width': 2 }));
+  if (DATI.colmo && DATI.colmo.stato === 'atteso') {
+    const x = Math.min(W - m.r, xs(+new Date(DATI.colmo.ora)));
+    svg.appendChild(svgEl('line', { x1: x, x2: x, y1: m.t, y2: H - m.b, stroke: 'var(--arancio)', 'stroke-dasharray': '4 3' }));
+  }
   box.appendChild(svg);
-  tooltip(box, svg, W, m, righe, (d) => xs(d), (d) => `${new Date(d.ora).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}\nS. Piero ${n(d.san_piero)} m · Gamberame ${n(d.gamberame)} m\nPioggia Gamberame 1h ${n(d.pioggia_gamberame_1h, 1)} mm`);
+  const ref = S.san_piero && S.san_piero.length ? S.san_piero : S[linee[0][0]];
+  const val = (k, t) => { const a = S[k] || []; let best = null, bd = Infinity; for (const p of a) { const d = Math.abs(+new Date(p[0]) - t); if (d < bd) { bd = d; best = p; } } return best && bd < 40 * 60000 ? best[1] : null; };
+  tooltip(box, svg, W, m, ref, (d) => xs(+new Date(d[0])), (d) => { const t = +new Date(d[0]); return new Date(t).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '\n' + linee.map(([k, , lab]) => `${lab} ${n(val(k, t))} m`).join('\n'); });
 }
 
 /* ---------- storico ---------- */
@@ -482,13 +611,14 @@ function disegnaTabella() {
 let SIM_PRONTO = false, SIM_TOCCATO = false, SCELTA = null;
 function preparaSim() {
   if (!SIM_PRONTO) {
-    ['s-p', 's-l', 's-i'].forEach((id) => $(id).addEventListener('input', () => { SIM_TOCCATO = true; SCELTA = null; $('s-fonte').textContent = 'Valori inseriti a mano.'; segnaScelte(); simula(); }));
+    ['s-p', 's-l', 's-i', 's-t'].forEach((id) => $(id).addEventListener('input', () => { SIM_TOCCATO = true; SCELTA = null; $('s-fonte').textContent = 'Valori inseriti a mano.'; segnaScelte(); simula(); }));
     SIM_PRONTO = true;
   }
   if (SIM_TOCCATO) return;
   const sp = DATI.tempo_reale.livelli.san_piero, pg = DATI.tempo_reale.piogge.gamberame, p = DATI.previsione;
   if (sp && sp.livello !== null) $('s-l').value = sp.livello.toFixed(2);
   if (pg && pg.mm_24h !== null) $('s-i').value = Math.round(pg.mm_24h);
+  if (DATI.terreno && DATI.terreno.pioggia_15g_mm != null) $('s-t').value = Math.round(DATI.terreno.pioggia_15g_mm);
   if (p && p.pioggia_usata_mm !== null && p.pioggia_usata_mm !== undefined) { $('s-p').value = Math.round(p.pioggia_usata_mm); SCELTA = p.pioggia_usata_mm; $('s-fonte').textContent = 'Compilati in automatico: pioggia da ' + p.pioggia_usata_fonte + ', livello e pioggia delle ultime 24 ore dai dati in tempo reale.'; }
 }
 function segnaScelte() { document.querySelectorAll('#prev-scelte button').forEach((b) => b.setAttribute('aria-pressed', String(SCELTA !== null && +b.dataset.mm === SCELTA))); }
@@ -516,14 +646,15 @@ function mostraPrevisione() {
 }
 function simula() {
   const v = (id) => { const x = parseFloat(String($(id).value).replace(',', '.')); return Number.isFinite(x) ? Math.max(0, x) : 0; };
-  const G = v('s-p'), L = v('s-l'), P = v('s-i');
-  const pool = [];
+  const G = v('s-p'), L = v('s-l'), P = v('s-i'), T = v('s-t');
+  const pool = []; const cum = [0];
+  for (const r of STORICO) cum.push(cum[cum.length - 1] + (r.pioggia_gamberame_mm || 0));
   for (let i = 1; i < STORICO.length; i++) {
     const r = STORICO[i], q = STORICO[i - 1];
     if (r.pioggia_gamberame_mm === null || q.livello_san_piero_m === null || r.livello_san_piero_m === null) continue;
-    pool.push({ data: r.data, g: r.pioggia_gamberame_mm, p: q.pioggia_gamberame_mm || 0, l0: q.livello_san_piero_m, l1: r.livello_san_piero_m });
+    pool.push({ data: r.data, g: r.pioggia_gamberame_mm, p: q.pioggia_gamberame_mm || 0, l0: q.livello_san_piero_m, l1: r.livello_san_piero_m, t: cum[i] - cum[Math.max(0, i - 15)] });
   }
-  const dist = (r) => ((r.g - G) / 15) ** 2 + ((r.l0 - L) / 0.25) ** 2 + ((r.p - P) / 30) ** 2;
+  const dist = (r) => ((r.g - G) / 15) ** 2 + ((r.l0 - L) / 0.25) ** 2 + ((r.p - P) / 30) ** 2 + ((r.t - T) / 40) ** 2;
   const vic = pool.sort((a, b) => dist(a) - dist(b)).slice(0, 6);
   const lv = vic.map((r) => r.l1).sort((a, b) => a - b);
   const med = (lv[2] + lv[3]) / 2;
@@ -535,19 +666,31 @@ function simula() {
   $('sim-etichetta').textContent = NOME[liv]; $('sim-etichetta').style.color = COL[liv]; $('sim-dot').style.background = COL[liv];
   $('sim-frase').textContent = `Con ${n(G, 0)} mm a Gamberame, il livello medio a San Piero a Ponti potrebbe arrivare a circa ${n(med)} m (nei casi simili tra ${n(lv[0])} e ${n(lv[lv.length - 1])} m). Pesa di più ${causa}.`;
   $('sim-avviso').hidden = !(G > 110 || G > 1.25 * Math.max(...vic.map((r) => r.g)) + 5);
-  $('s-tab').replaceChildren(...vic.map((r) => { const tr = htmlEl('tr'); tr.append(htmlEl('td', '', fData(r.data)), htmlEl('td', '', n(r.g, 1) + ' mm'), htmlEl('td', '', n(r.p, 1) + ' mm'), htmlEl('td', '', n(r.l0) + ' m'), htmlEl('td', '', n(r.l1) + ' m')); return tr; }));
+  $('s-tab').replaceChildren(...vic.map((r) => { const tr = htmlEl('tr'); tr.append(htmlEl('td', '', fData(r.data)), htmlEl('td', '', n(r.g, 1) + ' mm'), htmlEl('td', '', n(r.p, 1) + ' mm'), htmlEl('td', '', n(r.t, 0) + ' mm'), htmlEl('td', '', n(r.l0) + ' m'), htmlEl('td', '', n(r.l1) + ' m')); return tr; }));
 }
 
 /* ---------- info ---------- */
 function disegnaSoglie() {
   const S = soglie(); const f = (x) => n(x, 2) + ' m';
+  const L = S.livelli, V = S.velocita_cm_ora || {}, TR = S.tempo_ritorno_anni || [2, 5, 20];
   const righe = [
-    ['Livello San Piero a Ponti', '', ...S.livelli.san_piero.map(f)],
-    ['Livello Gamberame', '', ...S.livelli.gamberame.map(f)],
-    ['Pioggia 24 ore', '', n(S.pioggia24h * 0.55, 0) + ' mm', n(S.pioggia24h * 0.75, 0) + ' mm', n(S.pioggia24h, 0) + ' mm'],
-    ['Pioggia 48 ore', '', n(S.pioggia48h * 0.55, 0) + ' mm', n(S.pioggia48h * 0.75, 0) + ' mm', n(S.pioggia48h, 0) + ' mm'],
+    ['Livello Bisenzio a San Piero a Ponti', ...L.san_piero.map(f)],
+    ['Livello Bisenzio a Gamberame', ...L.gamberame.map(f)],
   ];
-  $('tab-soglie').replaceChildren(...righe.map((r) => { const tr = htmlEl('tr'); r.forEach((c) => tr.append(htmlEl('td', '', c))); return tr; }));
+  if (L.marina) righe.push(['Livello Marina a Calenzano', ...L.marina.map(f)]);
+  if (L.signa) righe.push(['Livello Arno a Ponte a Signa', ...L.signa.map(f)]);
+  for (const [k, lab] of [['san_piero', 'Salita a San Piero a Ponti'], ['gamberame', 'Salita a Gamberame'], ['marina', 'Salita Marina'], ['signa', 'Salita Arno a Signa']]) if (V[k]) righe.push([lab, ...V[k].map((x) => x + ' cm/h')]);
+  righe.push(['Pioggia 1–24 ore, tempo di ritorno', ...TR.map((x) => x + ' anni')]);
+  righe.push(['Pioggia 24 ore', ...[0.55, 0.75, 1].map((q) => n(S.pioggia24h * q, 0) + ' mm')]);
+  righe.push(['Pioggia 48 ore', ...[0.55, 0.75, 1].map((q) => n(S.pioggia48h * q, 0) + ' mm')]);
+  $('tab-soglie').replaceChildren(...righe.map((r) => { const tr = htmlEl('tr'); tr.append(htmlEl('td', '', r[0]), htmlEl('td'), ...r.slice(1).map((c) => htmlEl('td', '', c))); return tr; }));
+}
+function disegnaRitardi() {
+  const r = DATI.ritardo_gamberame_san_piero;
+  $('info-ritardo').textContent = r ? `Il colmo della piena impiega circa ${n(r.ore, 1)} ore per scendere da Gamberame a San Piero a Ponti (${r.fonte}). L'app aggiorna questo valore da sola ogni volta che osserva una nuova piena.` : '';
+  const R = (DATI.ritardi || []).slice().reverse();
+  const fd = (iso) => new Date(iso).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  $('tab-ritardi').replaceChildren(...(R.length ? R.map((x) => { const tr = htmlEl('tr'); tr.append(htmlEl('td', '', fd(x.colmo_gamberame)), htmlEl('td', '', fd(x.colmo_san_piero)), htmlEl('td', '', n(x.ore, 1))); return tr; }) : [(() => { const tr = htmlEl('tr'); const td = htmlEl('td', 'vuoto', 'Nessuna piena ancora registrata dall\'app'); td.colSpan = 3; tr.append(td); return tr; })()]));
 }
 
 let rid; window.addEventListener('resize', () => { clearTimeout(rid); rid = setTimeout(() => { if (DATI) disegnaVista(); }, 200); });
