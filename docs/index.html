@@ -121,6 +121,7 @@
   .badge-uff { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; }
   .cause { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: .84rem; }
   .cause:empty { display: none; }
+  .avviso.grigio { background: var(--panel2); color: var(--muted); }
   table.regole td { white-space: normal; vertical-align: top; line-height: 1.4; }
   table.regole td:first-child { white-space: nowrap; }
   .segnali { background: var(--panel2); border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: .85rem; }
@@ -184,7 +185,7 @@
         </div>
       </div>
       <div class="segnali" id="segnali" hidden><b>Da tenere d'occhio</b><ul id="altre-cause"></ul><span class="muted">Da soli portano al massimo alla Sorveglianza.</span></div>
-      <div class="avviso" id="dati-vecchi" hidden></div>
+      <div class="avviso grigio" id="dati-vecchi" hidden></div>
     </div>
 
     <div class="card">
@@ -279,12 +280,12 @@
     </div>
     <div class="card info">
       <h2>Come si calcola l'allerta</h2>
-      <p>La base è il livello del Bisenzio a San Piero a Ponti, ma conta anche se sale o scende. La pioggia conta solo quando è molto abbondante. Vince la condizione più grave; per scendere di colore servono almeno 60 minuti di situazione migliore.</p>
+      <p>La base è il livello del Bisenzio a San Piero a Ponti, ma conta anche se nell'ultima ora sale o scende. La pioggia conta solo quando è molto abbondante. Vince la condizione più grave; per scendere di colore servono almeno 60 minuti di situazione migliore.</p>
       <div class="tabella"><table class="regole"><thead><tr><th>Colore</th><th>Quando</th></tr></thead><tbody>
         <tr><td><b style="color:var(--rosso)">Rossa</b></td><td>San Piero oltre 5,50 m (seconda soglia ufficiale) · almeno 100 mm in 24 ore a Gamberame con il terreno molto bagnato · allerta ufficiale rossa della Regione</td></tr>
         <tr><td><b style="color:var(--arancio)">Arancione</b></td><td>San Piero oltre 4,50 m e in salita, o oltre 5,00 m · almeno 80 mm in 24 ore o 120 mm in 36 ore · Gamberame oltre 2,80 m</td></tr>
-        <tr><td><b style="color:var(--giallo)">Gialla</b></td><td>San Piero oltre 3,50 m e in salita, o con pioggia in arrivo · oltre 3,00 m con l'onda in arrivo da Gamberame · almeno 60 mm in 24 ore · oltre 4,50 m ma in calo</td></tr>
-        <tr><td><b style="color:var(--sorv)">Sorveglianza</b></td><td>San Piero oltre 3,50 m stabile o in calo, senza pioggia in arrivo · oltre 3,00 m in salita · allerta ufficiale gialla o arancione · uno dei segnali qui sotto · pioggia abbondante ma fiume già in calo</td></tr>
+        <tr><td><b style="color:var(--giallo)">Gialla</b></td><td>San Piero oltre 3,50 m e in salita nell'ultima ora, o con pioggia in arrivo · oltre 3,00 m con un'onda in arrivo da Gamberame che lassù ha superato 1,80 m · almeno 60 mm in 24 ore · oltre 4,50 m ma in calo</td></tr>
+        <tr><td><b style="color:var(--sorv)">Sorveglianza</b></td><td>San Piero oltre 3,50 m stabile o in calo nell'ultima ora, senza pioggia in arrivo · onda piccola in arrivo da Gamberame · oltre 3,00 m in salita · allerta ufficiale gialla o arancione · uno dei segnali qui sotto · pioggia abbondante ma fiume già in calo</td></tr>
         <tr><td><b style="color:var(--verde)">Nessuna allerta</b></td><td>Nessuna delle condizioni sopra</td></tr>
       </tbody></table></div>
       <h3>Segnali da tenere d'occhio</h3>
@@ -489,7 +490,7 @@ function disegnaStato() {
   $('dati-vecchi').hidden = !vecchi.length;
   $('dati-vecchi').textContent = vecchi.length ? `${vecchi.join(', ')}: nessun dato da oltre un'ora.` : '';
   const etaApp = etaReale({ ora: DATI.aggiornato });
-  if (etaApp > 45) { $('dati-vecchi').hidden = false; $('dati-vecchi').textContent = `L'app non riceve dati nuovi da ${quandoFa(etaApp)}: i valori mostrati potrebbero non essere aggiornati. ` + $('dati-vecchi').textContent; }
+  if (etaApp > 60) { $('dati-vecchi').hidden = false; $('dati-vecchi').textContent = `Ultimo aggiornamento ${quandoFa(etaApp)}: GitHub a volte fa partire gli aggiornamenti in ritardo. I valori sono quelli delle ore indicate sotto ogni stazione. ` + $('dati-vecchi').textContent; }
 }
 
 function rigaInfo(ico, titolo, testo) { const r = htmlEl('div', 'riga-info'); r.append(htmlEl('span', 'ico', ico)); const t = htmlEl('div'); t.append(htmlEl('b', '', titolo), htmlEl('span', 'muted', testo)); r.append(t); return r; }

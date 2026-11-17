@@ -72,8 +72,9 @@ LIVELLI_ALLERTA = ["Nessuna allerta", "Sorveglianza", "Giallo", "Arancione", "Ro
 REGOLE = {
     "san_piero_m": {"sorveglianza": 3.0, "giallo": 3.5, "arancione": 4.5, "arancione_sempre": 5.0, "rosso": 5.5},
     "gamberame_arancione_m": 2.8,          # seconda soglia ufficiale a monte
-    "in_salita_cm_ora": 3,                 # sopra: il livello sta salendo
-    "in_calo_cm_ora": -3,                  # sotto: il livello sta scendendo
+    "gamberame_onda_m": 1.8,               # l'onda da Gamberame alza il colore solo se lassù si è superato questo livello
+    "in_salita_cm_ora": 3,                 # ultima ora: sopra questo il livello sale
+    "in_calo_cm_ora": -3,                  # ultima ora: sotto questo il livello scende
     "pioggia_giallo_mm": 60,               # 24 ore, circa una volta l'anno dal 1998
     "pioggia_arancione_mm": 80,            # 24 ore (7 giorni dal 1998)
     "pioggia_arancione_36h_mm": 120,       # 36 ore in tempo reale, 48 ore nello storico
@@ -488,7 +489,7 @@ def indice_tempo_reale(tr, analisi, storico_righe=None):
         l, a = tr["livelli"].get(chiave), analisi.get(chiave)
         if not (l and a) or l["vecchio"]:
             continue
-        vel = max([v for v in (a["cm_ora_1h"], a["cm_ora_3h"]) if v is not None] or [0])
+        vel = a["cm_ora_1h"] if a.get("cm_ora_1h") is not None else (a.get("cm_ora_3h") or 0)
         if vel >= soglia:
             segnali.append(f"{l['fiume']} a {l['nome']} in salita rapida ({vel} cm all'ora)")
     for chiave, campo in (("gamberame", "pioggia_gamberame_mm"), ("campi", "pioggia_campi_mm")):
@@ -514,10 +515,15 @@ def allerta_tempo_reale(stima, tr, analisi, colmo, suolo, prossime, ufficiale, v
     vel = None
     if sp and sp["livello"] is not None and not sp["vecchio"]:
         L = sp["livello"]
-        v1, v3 = a.get("cm_ora_1h"), a.get("cm_ora_3h")
-        vel = v1 if v1 is not None else v3
-        sale = (v1 or 0) >= R["in_salita_cm_ora"] or (v3 or 0) >= R["in_salita_cm_ora"]
-        scende = (v1 if v1 is not None else 0) <= R["in_calo_cm_ora"] and (v3 if v3 is not None else 0) <= 0
+        # la tendenza è quella dell'ultima ora (la media 3 ore solo se manca l'ultima ora)
+        vel = a.get("cm_ora_1h") if a.get("cm_ora_1h") is not None else a.get("cm_ora_3h")
+        sale = vel is not None and vel >= R["in_salita_cm_ora"]
+        scende = vel is not None and vel <= R["in_calo_cm_ora"]
+        # onda in arrivo da Gamberame: conta solo se a Gamberame si è superata la prima soglia ufficiale
+        ag = analisi.get("gamberame") or {}
+        picco_g = (ag.get("colmo_24h") or {}).get("livello")
+        onda = bool(colmo and colmo.get("stato") in ("in_salita", "atteso"))
+        onda_forte = onda and picco_g is not None and picco_g >= R["gamberame_onda_m"]
         pioggia_arrivo = (prossime or {}).get("media_mm") or 0
         txt = f"S. Piero a Ponti {fmt(L, 2, ' m')}"
         stato = "in salita" if sale else "in calo" if scende else "stabile"
@@ -528,12 +534,18 @@ def allerta_tempo_reale(stima, tr, analisi, colmo, suolo, prossime, ufficiale, v
         elif L >= S["arancione"]:
             proposte.append(("Giallo", f"{txt}, {stato}"))
         elif L >= S["giallo"]:
-            if sale or pioggia_arrivo >= R["pioggia_in_arrivo_mm"]:
-                proposte.append(("Giallo", f"{txt}, {stato}" + ("" if sale else f", pioggia in arrivo ({pioggia_arrivo:.0f} mm in 3 ore)")))
+            if sale:
+                proposte.append(("Giallo", f"{txt}, in salita"))
+            elif pioggia_arrivo >= R["pioggia_in_arrivo_mm"]:
+                proposte.append(("Giallo", f"{txt}, {stato}, pioggia in arrivo ({fmt(pioggia_arrivo, 0, ' mm')} in 3 ore)"))
+            elif onda_forte:
+                proposte.append(("Giallo", f"{txt}, {stato}, onda in arrivo da Gamberame (salita a {fmt(picco_g, 2, ' m')})"))
             else:
-                proposte.append(("Sorveglianza", f"{txt}, {stato}, senza pioggia in arrivo"))
-        elif L >= S["sorveglianza"] and colmo and colmo.get("stato") in ("in_salita", "atteso"):
-            proposte.append(("Giallo", f"{txt} con l'onda in arrivo da Gamberame"))
+                proposte.append(("Sorveglianza", f"{txt}, {stato}" + (", onda piccola in arrivo da Gamberame" if onda else ", senza pioggia in arrivo")))
+        elif L >= S["sorveglianza"] and onda_forte:
+            proposte.append(("Giallo", f"{txt}, onda in arrivo da Gamberame (salita a {fmt(picco_g, 2, ' m')})"))
+        elif L >= S["sorveglianza"] and onda:
+            proposte.append(("Sorveglianza", f"{txt}, onda piccola in arrivo da Gamberame"))
         elif L >= S["sorveglianza"] and sale:
             proposte.append(("Sorveglianza", f"{txt}, in salita"))
     g = tr["livelli"].get("gamberame")
