@@ -81,7 +81,7 @@ REGOLE = {
     "pioggia_rosso_mm": 100,               # 24 ore con terreno molto bagnato (2 giorni dal 1998)
     "terreno_bagnato_percentile": 85,      # "molto umido" o "saturo"
     "pioggia_in_arrivo_mm": 5,             # prossime 3 ore: tiene il giallo anche con livello stabile
-    "minuti_prima_di_scendere": 60,        # il colore scende solo dopo un'ora di condizioni migliori
+    "minuti_prima_di_scendere": 0,         # 0 = il colore scende subito (scelta dell'utente); es. 30 = dopo due letture
 }
 # Segnali "da tenere d'occhio": portano al massimo a Sorveglianza.
 SOGLIE_SEGNALI = {
@@ -577,11 +577,14 @@ def allerta_tempo_reale(stima, tr, analisi, colmo, suolo, prossime, ufficiale, v
     # isteresi: si scende di colore solo dopo un'ora
     prima = rango((vecchia or {}).get("livello"))
     calo_da = None
-    if nuovo < prima and vecchia:
+    if nuovo < prima and vecchia and R["minuti_prima_di_scendere"] > 0:
         calo_da = vecchia.get("calo_da") or adesso.isoformat(timespec="minutes")
         if adesso - datetime.fromisoformat(calo_da) < timedelta(minutes=R["minuti_prima_di_scendere"]):
-            return {**stima, "livello": vecchia["livello"], "motivi": vecchia.get("motivi", []),
-                    "in_attesa_di": LIVELLI_ALLERTA[nuovo], "calo_da": calo_da}
+            # resta il colore di prima, ma la spiegazione è quella di adesso
+            scende_alle = datetime.fromisoformat(calo_da) + timedelta(minutes=R["minuti_prima_di_scendere"])
+            return {**stima, "livello": vecchia["livello"], "motivi": motivi,
+                    "in_attesa_di": LIVELLI_ALLERTA[nuovo], "calo_da": calo_da,
+                    "scende_alle": scende_alle.isoformat(timespec="minutes")}
         calo_da = None
     return {**stima, "livello": LIVELLI_ALLERTA[nuovo], "motivi": motivi, "calo_da": calo_da}
 
