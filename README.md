@@ -26,7 +26,7 @@ Dati: Servizio Idrologico Regionale Toscana (sir.toscana.it). È una stima indic
 ## Passo 2 – Crea il repository
 
 1. In alto a destra **+** → **New repository**.
-2. **Repository name:** `allerta-bisenzio`.
+2. **Repository name:** `BisenzioLive`.
 3. Scegli **Public** (GitHub Pages gratuito richiede un repository pubblico).
 4. Non spuntare nient'altro → **Create repository**.
 
@@ -34,7 +34,7 @@ Dati: Servizio Idrologico Regionale Toscana (sir.toscana.it). È una stima indic
 
 1. Scompatta lo zip sul computer.
 2. Nella pagina del repository appena creato clicca **uploading an existing file**.
-3. Trascina **il contenuto** della cartella `allerta-bisenzio` (le cartelle `docs`, `scripts`, `.github` e i file `README.md`, `.gitignore`).
+3. Trascina **il contenuto** della cartella `BisenzioLive` (le cartelle `docs`, `scripts`, `.github` e i file `README.md`, `.gitignore`).
    - Attenzione: la cartella `.github` su Windows può essere nascosta. In Esplora file: **Visualizza → Mostra → Elementi nascosti**.
    - Se il trascinamento non prende la cartella `.github`, creala a mano: **Add file → Create new file**, nome `.github/workflows/aggiorna.yml`, e incolla il contenuto del file.
 4. In fondo **Commit changes**.
@@ -48,7 +48,7 @@ Dati: Servizio Idrologico Regionale Toscana (sir.toscana.it). È una stima indic
 
 1. **Settings** → **Pages**.
 2. **Source:** *Deploy from a branch*. **Branch:** `main`, cartella **`/docs`** → **Save**.
-3. Dopo 1–2 minuti il sito è su `https://TUONOME.github.io/allerta-bisenzio/`.
+3. Dopo 1–2 minuti il sito è su `https://TUONOME.github.io/BisenzioLive/`.
 
 ## Passo 6 – Primo aggiornamento a mano
 
