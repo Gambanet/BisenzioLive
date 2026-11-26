@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bisenzio Live</title>
-<meta name="description" content="Livelli del Bisenzio, pioggia in Val di Bisenzio e a Campi Bisenzio, allerta stimata e previsione per domani.">
+<meta name="description" content="Livelli del Bisenzio, pioggia in Val di Bisenzio e a Campi Bisenzio, stato del fiume e previsione per domani.">
 <meta name="theme-color" content="#0f3b4c" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1a20" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
@@ -179,7 +179,7 @@
       <div class="stato">
         <div class="anello" id="anello"></div>
         <div>
-          <span class="chip" id="stato-chip"><i></i>Allerta stimata</span><br>
+          <span class="chip" id="stato-chip"><i></i>Stato del fiume · stima dell'app</span><br>
           <span class="etichetta" id="stato-etichetta">—</span>
           <p id="stato-frase"></p>
         </div>
@@ -230,7 +230,7 @@
       <div class="stato">
         <div class="anello" id="anello-sim"></div>
         <div>
-          <span class="chip"><i id="sim-dot"></i>Allerta stimata per domani</span><br>
+          <span class="chip"><i id="sim-dot"></i>Stato del fiume previsto per domani</span><br>
           <span class="etichetta" id="sim-etichetta">—</span>
           <p id="sim-frase"></p>
         </div>
@@ -256,16 +256,16 @@
   <!-- STORICO -->
   <section data-vista="storico" id="storico" hidden>
     <div class="card">
-      <h2>Giorni di allerta</h2>
+      <h2>Stato del fiume giorno per giorno</h2>
       <label class="muted" for="anno">Periodo</label><br>
       <select id="anno"><option value="">Dal 1998 a oggi</option><option value="ultimi5">Ultimi 5 anni</option></select>
       <div class="conteggi" id="conteggi" style="margin-top:14px"></div>
-      <div class="legenda"><span><i style="background:var(--rosso)"></i>Rosso</span><span><i style="background:var(--arancio)"></i>Arancione</span><span><i style="background:var(--giallo)"></i>Giallo</span><span><i style="background:var(--sorv)"></i>Sorveglianza</span><span><i style="background:var(--neutro)"></i>Nessuna allerta</span></div>
+      <div class="legenda"><span><i style="background:var(--rosso)"></i>Allerta</span><span><i style="background:var(--arancio)"></i>Fiume molto alto</span><span><i style="background:var(--giallo)"></i>Fiume alto</span><span><i style="background:var(--sorv)"></i>Da seguire</span><span><i style="background:var(--neutro)"></i>Fiume tranquillo</span></div>
       <div class="chart" id="chart-indice"></div>
       <p class="muted">Altezza delle barre: livello medio del giorno a San Piero a Ponti. Colore: scala dell'app sui dati giornalieri (livello e pioggia a Gamberame).</p>
     </div>
     <div class="card">
-      <h2>Giorni arancioni e rossi</h2>
+      <h2>Giorni con il fiume molto alto o in allerta</h2>
       <div class="tabella"><table><thead><tr><th>Data</th><th>Livello</th><th>Pioggia 24h</th><th>S. Piero</th><th>Gamberame</th></tr></thead><tbody id="tab-allerte"></tbody></table></div>
       <p class="muted">Livelli medi del giorno, più bassi dei picchi.</p>
     </div>
@@ -275,18 +275,18 @@
   <section data-vista="info" id="info" hidden>
     <div class="card info">
       <h2>Cos'è Bisenzio Live</h2>
-      <p>Un'app personale che raccoglie ogni 15 minuti i dati pubblici del Servizio Idrologico Regionale Toscana sul fiume Bisenzio e calcola un'allerta stimata.</p>
+      <p>Un'app personale che raccoglie ogni 15 minuti i dati pubblici del Servizio Idrologico Regionale Toscana sul fiume Bisenzio e li riassume in uno stato del fiume, dal verde al rosso. Solo il rosso si chiama Allerta: i livelli di allerta veri li dà la Protezione Civile della Regione.</p>
       <p><b>Non è un servizio ufficiale di allerta.</b> Per le decisioni valgono gli avvisi del <a href="https://www.cfr.toscana.it" target="_blank" rel="noopener">Centro Funzionale Regionale</a>, della Protezione Civile e del tuo Comune.</p>
     </div>
     <div class="card info">
-      <h2>Come si calcola l'allerta</h2>
+      <h2>Come si calcola lo stato del fiume</h2>
       <p>La base è il livello del Bisenzio a San Piero a Ponti, ma conta anche se nell'ultima ora sale o scende. La pioggia conta solo quando è molto abbondante. Vince la condizione più grave. Il colore si aggiorna a ogni lettura, ogni 15 minuti, sia quando sale sia quando scende.</p>
       <div class="tabella"><table class="regole"><thead><tr><th>Colore</th><th>Quando</th></tr></thead><tbody>
-        <tr><td><b style="color:var(--rosso)">Rossa</b></td><td>San Piero oltre 5,50 m (seconda soglia ufficiale) · almeno 100 mm in 24 ore a Gamberame con il terreno molto bagnato · allerta ufficiale rossa della Regione</td></tr>
-        <tr><td><b style="color:var(--arancio)">Arancione</b></td><td>San Piero oltre 4,50 m e in salita, o oltre 5,00 m · almeno 80 mm in 24 ore o 120 mm in 36 ore · Gamberame oltre 2,80 m</td></tr>
-        <tr><td><b style="color:var(--giallo)">Gialla</b></td><td>San Piero oltre 3,50 m e in salita nell'ultima ora, o con pioggia in arrivo · oltre 3,00 m con un'onda in arrivo da Gamberame che lassù ha superato 1,80 m · almeno 60 mm in 24 ore · oltre 4,50 m ma in calo</td></tr>
-        <tr><td><b style="color:var(--sorv)">Sorveglianza</b></td><td>San Piero oltre 3,50 m stabile o in calo nell'ultima ora, senza pioggia in arrivo · onda piccola in arrivo da Gamberame · oltre 3,00 m in salita · allerta ufficiale gialla o arancione · uno dei segnali qui sotto · pioggia abbondante ma fiume già in calo</td></tr>
-        <tr><td><b style="color:var(--verde)">Nessuna allerta</b></td><td>Nessuna delle condizioni sopra</td></tr>
+        <tr><td><b style="color:var(--rosso)">Allerta</b></td><td>San Piero oltre 5,50 m (seconda soglia ufficiale) · almeno 100 mm in 24 ore a Gamberame con il terreno molto bagnato · allerta ufficiale rossa della Regione</td></tr>
+        <tr><td><b style="color:var(--arancio)">Fiume molto alto</b></td><td>San Piero oltre 4,50 m e in salita, o oltre 5,00 m · almeno 80 mm in 24 ore o 120 mm in 36 ore · Gamberame oltre 2,80 m</td></tr>
+        <tr><td><b style="color:var(--giallo)">Fiume alto</b></td><td>San Piero oltre 3,50 m e in salita nell'ultima ora, o con pioggia in arrivo · oltre 3,00 m con un'onda in arrivo da Gamberame che lassù ha superato 1,80 m · almeno 60 mm in 24 ore · oltre 4,50 m ma in calo</td></tr>
+        <tr><td><b style="color:var(--sorv)">Da seguire</b></td><td>San Piero oltre 3,50 m stabile o in calo nell'ultima ora, senza pioggia in arrivo · onda piccola in arrivo da Gamberame · oltre 3,00 m in salita · allerta ufficiale gialla o arancione · uno dei segnali qui sotto · pioggia abbondante ma fiume già in calo</td></tr>
+        <tr><td><b style="color:var(--verde)">Fiume tranquillo</b></td><td>Nessuna delle condizioni sopra</td></tr>
       </tbody></table></div>
       <h3>Segnali da tenere d'occhio</h3>
       <p>Portano al massimo alla Sorveglianza:</p>
@@ -300,7 +300,7 @@
     </div>
     <div class="card info">
       <h2>Verifica sulle piene dal 1998</h2>
-      <p>Applicando la scala ai dati giornalieri dal 1998: 1 giorno rosso (3 novembre 2023, 181 mm a Gamberame con il terreno saturo), 11 arancioni, 25 gialli e 40 in sorveglianza. Il temporale del 9 settembre 2024 (oltre 100 mm con il terreno non saturo) resta arancione. Il livello medio del giorno a San Piero non ha mai superato 5,50 m (massimo 5,15 m il 14 marzo 2025).</p>
+      <p>Applicando la scala ai dati giornalieri dal 1998: 1 giorno di allerta (3 novembre 2023, 181 mm a Gamberame con il terreno saturo), 11 con il fiume molto alto, 25 con il fiume alto e 40 da seguire. Il temporale del 9 settembre 2024 (oltre 100 mm con il terreno non saturo) resta arancione. Il livello medio del giorno a San Piero non ha mai superato 5,50 m (massimo 5,15 m il 14 marzo 2025).</p>
       <p class="muted">Una verifica ora per ora sarà possibile con le letture ogni 15 minuti che l'app salva da adesso in poi, o chiedendo i dati orari al Servizio Idrologico.</p>
     </div>
     <div class="card info">
@@ -326,7 +326,9 @@
 
 <script>
 const COL = { 'Rosso': 'var(--rosso)', 'Arancione': 'var(--arancio)', 'Giallo': 'var(--giallo)', 'Sorveglianza': 'var(--sorv)', 'Nessuna allerta': 'var(--verde)', 'Non disponibile': 'var(--neutro)' };
-const NOME = { 'Rosso': 'Allerta rossa', 'Arancione': 'Allerta arancione', 'Giallo': 'Allerta gialla', 'Sorveglianza': 'Sorveglianza', 'Nessuna allerta': 'Nessuna allerta', 'Non disponibile': 'Livello non disponibile' };
+// Nomi mostrati (i codici interni restano Rosso, Arancione, Giallo, Sorveglianza, Nessuna allerta)
+const NOME = { 'Rosso': 'Allerta: seguire la Protezione Civile', 'Arancione': 'Fiume molto alto', 'Giallo': 'Fiume alto', 'Sorveglianza': 'Da seguire', 'Nessuna allerta': 'Fiume tranquillo', 'Non disponibile': 'Livello non disponibile' };
+const NOME_BREVE = Object.assign({}, NOME, { 'Rosso': 'Allerta' });
 /* Scala a 5 livelli: stesse regole dello script (REGOLE in aggiorna.py) */
 const SCALA = ['Nessuna allerta', 'Sorveglianza', 'Giallo', 'Arancione', 'Rosso'];
 const rango = (l) => Math.max(0, SCALA.indexOf(l));
@@ -482,7 +484,7 @@ function disegnaStato() {
   } else parti.push('Il livello a San Piero a Ponti non è disponibile: segui gli avvisi ufficiali.');
   if (s.in_attesa_di) {
     if ((s.motivi || []).length) parti.push('Adesso: ' + s.motivi.join('; ') + '.');
-    parti.push(`Per prudenza resta ${NOME[s.livello].toLowerCase()}` + (s.scende_alle ? ` fino alle ${ora(s.scende_alle)}` : ' ancora per poco') + `, poi passa a ${NOME[s.in_attesa_di].toLowerCase()} se la situazione non peggiora.`);
+    parti.push(`Per prudenza resta "${NOME_BREVE[s.livello]}"` + (s.scende_alle ? ` fino alle ${ora(s.scende_alle)}` : ' ancora per poco') + `, poi passa a "${NOME_BREVE[s.in_attesa_di]}" se la situazione non peggiora.`);
   } else if ((s.motivi || []).length) parti.push('Perché: ' + s.motivi.join('; ') + '.');
   $('stato-frase').textContent = parti.join(' ');
   const seg = s.segnali || [];
@@ -646,7 +648,7 @@ function preparaAnni() {
 }
 function disegnaConteggi() {
   const righe = STORICO.filter(filtroAnno()); const box = $('conteggi'); box.replaceChildren();
-  for (const [liv, lab] of [['Rosso', 'rossi'], ['Arancione', 'arancioni'], ['Giallo', 'gialli'], ['Sorveglianza', 'in sorveglianza']]) {
+  for (const [liv, lab] of [['Rosso', 'in allerta'], ['Arancione', 'fiume molto alto'], ['Giallo', 'fiume alto'], ['Sorveglianza', 'da seguire']]) {
     const c = htmlEl('div', 'staz'); const v = htmlEl('div', 'val num', String(righe.filter((r) => r.livello === liv).length)); v.style.color = COL[liv];
     c.append(v, htmlEl('div', 'nome', 'giorni ' + lab)); box.append(c);
   }
@@ -658,18 +660,18 @@ function disegnaIndice() {
   const bw = (W - m.l - m.r) / righe.length;
   const ymax = Math.max(120, ...righe.map((r) => r.indice));
   const ys = (v) => m.t + (H - m.t - m.b) * (1 - v / ymax);
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Indice di allerta giornaliero' });
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Stato del fiume giorno per giorno' });
   const tick = []; const mensile = a && a !== 'ultimi5'; const passo = W < 500 ? 7 : W < 800 ? 4 : 2;
   righe.forEach((r, i) => { if (i === 0 || r.data.slice(0, 7) !== righe[i - 1].data.slice(0, 7)) { const mm = r.data.slice(5, 7); if (mensile ? (W > 420 || +mm % 2 === 1) : (mm === '01' && (a === 'ultimi5' || +r.data.slice(0, 4) % passo === 0))) tick.push([m.l + i * bw, mensile ? ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][+mm - 1] : r.data.slice(0, 4)]); } });
   assi(svg, W, H, m, ys, [0, 55, 100].filter((t) => t <= ymax), tick);
   righe.forEach((r, i) => { if (r.indice <= 0) return; svg.appendChild(svgEl('rect', { x: m.l + i * bw, width: Math.max(1, bw - (bw > 3 ? 1 : 0)), y: ys(r.indice), height: ys(0) - ys(r.indice), fill: r.livello === 'Nessuna allerta' ? 'var(--neutro)' : COL[r.livello], rx: bw > 4 ? 1.5 : 0 })); });
   box.appendChild(svg);
-  tooltip(box, svg, W, m, righe, (d, i) => m.l + (i + .5) * bw, (d) => `${fData(d.data)} · ${NOME[d.livello] || 'Nessuna allerta'}${d.causa ? ' (' + d.causa + ')' : ''}\nPioggia Gamberame ${n(d.pioggia_gamberame_mm, 1)} mm · Campi ${n(d.pioggia_campi_mm, 1)} mm\nS. Piero ${n(d.livello_san_piero_m)} m · Gamberame ${n(d.livello_gamberame_m)} m`);
+  tooltip(box, svg, W, m, righe, (d, i) => m.l + (i + .5) * bw, (d) => `${fData(d.data)} · ${NOME_BREVE[d.livello] || 'Fiume tranquillo'}${d.causa ? ' (' + d.causa + ')' : ''}\nPioggia Gamberame ${n(d.pioggia_gamberame_mm, 1)} mm · Campi ${n(d.pioggia_campi_mm, 1)} mm\nS. Piero ${n(d.livello_san_piero_m)} m · Gamberame ${n(d.livello_gamberame_m)} m`);
 }
-function pillCell(liv) { const td = htmlEl('td'); const s = htmlEl('span', 'pill'); const i = htmlEl('i'); i.style.background = COL[liv]; s.append(i, liv); td.append(s); return td; }
+function pillCell(liv) { const td = htmlEl('td'); const s = htmlEl('span', 'pill'); const i = htmlEl('i'); i.style.background = COL[liv]; s.append(i, NOME_BREVE[liv] || liv); td.append(s); return td; }
 function disegnaTabella() {
   const righe = STORICO.filter((r) => (r.livello === 'Rosso' || r.livello === 'Arancione') && filtroAnno()(r)).reverse();
-  if (!righe.length) { const tr = htmlEl('tr'); const td = htmlEl('td', 'vuoto', 'Nessun giorno arancione o rosso in questo periodo'); td.colSpan = 5; tr.append(td); $('tab-allerte').replaceChildren(tr); return; }
+  if (!righe.length) { const tr = htmlEl('tr'); const td = htmlEl('td', 'vuoto', 'Nessun giorno con il fiume molto alto o in allerta in questo periodo'); td.colSpan = 5; tr.append(td); $('tab-allerte').replaceChildren(tr); return; }
   $('tab-allerte').replaceChildren(...righe.map((r) => { const tr = htmlEl('tr'); tr.append(htmlEl('td', '', fData(r.data)), pillCell(r.livello), htmlEl('td', '', n(Math.max(r.pioggia_gamberame_mm || 0, r.pioggia_campi_mm || 0), 1) + ' mm'), htmlEl('td', '', n(r.livello_san_piero_m) + ' m'), htmlEl('td', '', n(r.livello_gamberame_m) + ' m')); return tr; }));
 }
 

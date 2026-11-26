@@ -69,6 +69,10 @@ DURATE_TR = ["1h", "3h", "6h", "12h", "24h"]
 # Scala a 5 livelli. Il livello a S. Piero a Ponti è la base, ma conta se sale o scende;
 # la pioggia conta solo se è molto abbondante. Vedi la funzione allerta_tempo_reale.
 LIVELLI_ALLERTA = ["Nessuna allerta", "Sorveglianza", "Giallo", "Arancione", "Rosso"]
+# Nomi mostrati a chi legge (codici interni sopra invariati). Solo il rosso si chiama Allerta.
+NOMI_STATO = {"Nessuna allerta": "Fiume tranquillo", "Sorveglianza": "Da seguire", "Giallo": "Fiume alto",
+              "Arancione": "Fiume molto alto", "Rosso": "Allerta: seguire la Protezione Civile",
+              "Non disponibile": "Livello non disponibile"}
 REGOLE = {
     "san_piero_m": {"sorveglianza": 3.0, "giallo": 3.5, "arancione": 4.5, "arancione_sempre": 5.0, "rosso": 5.5},
     "gamberame_arancione_m": 2.8,          # seconda soglia ufficiale a monte
@@ -959,7 +963,7 @@ def main():
     motivi = []
     prima = (vecchio.get("stima") or {}).get("livello")
     if stima["livello"] != prima and max(rango(stima["livello"]), rango(prima)) >= rango("Giallo"):
-        motivi.append("cambia l'allerta stimata")
+        motivi.append("cambia lo stato del fiume")
     superate = soglie_superate(tr)
     oggi_k, domani_k = adesso.date().isoformat(), (adesso.date() + timedelta(days=1)).isoformat()
     def colore_uff(dati_uff, k):
@@ -980,8 +984,8 @@ def main():
         def vel(l):
             v = l.get("cm_ora_1h")
             return "" if v is None else f" ({'+' if v > 0 else ''}{v} cm/h)"
-        msg = [f"Bisenzio {adesso:%d/%m %H:%M} - allerta stimata: {stima['livello']}",
-               "Perché: " + ("; ".join(stima.get("motivi") or []) or "nessuna condizione di allerta")]
+        msg = [f"Bisenzio {adesso:%d/%m %H:%M} - stato del fiume: {NOMI_STATO.get(stima['livello'], stima['livello'])} (stima dell'app)",
+               "Perché: " + ("; ".join(stima.get("motivi") or []) or "niente di particolare")]
         if ufficiale:
             msg.append(f"Allerta ufficiale zona B: oggi {colore_uff(ufficiale, oggi_k).lower()}, domani {colore_uff(ufficiale, domani_k).lower()}")
         msg.append(f"S. Piero a Ponti {fmt(sp.get('livello'), 2, ' m')}{vel(sp)} | Gamberame {fmt(ga.get('livello'), 2, ' m')}{vel(ga)}")
@@ -996,7 +1000,7 @@ def main():
             msg.append("Senza dati recenti: " + ", ".join(stima["dati_non_aggiornati"]))
         if sim:
             msg.append(f"Domani ({previsione['data'][8:10]}/{previsione['data'][5:7]}): pioggia prevista {fmt(previsione['pioggia_usata_mm'], 0, ' mm')} "
-                       f"-> S. Piero stimato {fmt(sim['livello_stimato_m'], 2, ' m')}, allerta {sim['livello']}")
+                       f"-> S. Piero stimato {fmt(sim['livello_stimato_m'], 2, ' m')}: {NOMI_STATO.get(sim['livello'], sim['livello'])}")
         msg.append("Stima indicativa: seguire gli avvisi del CFR Toscana e del Comune.")
         telegram("\n".join(msg))
 
